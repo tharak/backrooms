@@ -1,10 +1,9 @@
-// Deploy the included Cloudflare Worker and put its public URL here. The worker
-// performs the GitHub Device Flow exchange because GitHub's login endpoints do
-// not permit direct browser CORS requests.
+// Deploy the included Cloudflare Worker and put its public URL here. It posts
+// anonymous game records to the repository's public Player Messages issue.
 window.BACKROOMS_CONFIG = {
   owner: "tharak",
   repo: "backrooms",
   messageIssueNumber: 1,
-  oauthBrokerUrl: "",
+  messageBrokerUrl: "",
   githubApiVersion: "2026-03-10"
 };
