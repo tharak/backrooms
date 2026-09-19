@@ -12,36 +12,63 @@ const tokenInput = document.querySelector('#github-token');
 const markerIdentity = document.querySelector('#marker-identity');
 const welcomeError = document.querySelector('#welcome-error');
 const levelCompletePanel = document.querySelector('#level-complete');
+const levelLabel = document.querySelector('#level-label');
 const API = 'https://api.github.com';
 
 const CELL_SIZE = 2;
-const WALL_HEIGHT = 3.2;
-const EXIT_CELL = { x: 8, z: 1 };
-
-const map = [
-  '111111111111111',
-  '100000001000001',
-  '101111101011101',
-  '101000001010001',
-  '101011111010111',
-  '100010000010001',
-  '111010111110101',
-  '100010100000101',
-  '101110101111101',
-  '100000100000001',
-  '111111111111111'
+const LEVELS = [
+  {
+    number:0,name:'THE LOBBY',tagline:'YOU ARE NOT ALONE',issueNumber:config.messageIssueNumbers?.[0]||config.messageIssueNumber||1,seed:'LEVEL 0 // THE LOBBY // yellow-static-0',wallHeight:3.2,spawn:{x:1.5,z:1.5,yaw:0},exit:{x:8,z:1},
+    background:0x242314,fog:0x686238,fogDensity:.028,
+    lights:[[2.5,1.5],[6.5,1.5],[9.5,1.5],[13.5,1.5],[1.5,5.5],[5.5,5.5],[9.5,5.5],[13.5,9.5],[6.5,9.5]],
+    map:[
+      '111111111111111',
+      '100000001000001',
+      '101111101011101',
+      '101000001010001',
+      '101011111010111',
+      '100010000010001',
+      '111010111110101',
+      '100010100000101',
+      '101110101111101',
+      '100000100000001',
+      '111111111111111'
+    ]
+  },
+  {
+    number:1,name:'HABITABLE ZONE',tagline:'DO NOT FOLLOW THE PIPES',issueNumber:config.messageIssueNumbers?.[1]||2,seed:'LEVEL 1 // HABITABLE ZONE // cold-concrete',wallHeight:3.6,spawn:{x:1.5,z:1.5,yaw:0},exit:null,
+    background:0x1b2326,fog:0x3b474a,fogDensity:.019,
+    lights:[[2.5,1.5],[6.5,1.5],[11.5,1.5],[17.5,1.5],[3.5,3.5],[9.5,3.5],[15.5,3.5],[1.5,5.5],[7.5,5.5],[13.5,5.5],[18.5,5.5],[3.5,7.5],[9.5,7.5],[15.5,7.5],[1.5,9.5],[7.5,9.5],[13.5,9.5],[18.5,11.5],[5.5,11.5]],
+    map:[
+      '111111111111111111111',
+      '100000000010000000001',
+      '101111110010111111101',
+      '101000010000100000101',
+      '101011010111101110101',
+      '100010010000001000001',
+      '111010111011111011101',
+      '100010000010000010001',
+      '101111011110111010101',
+      '100000010000101000101',
+      '101110010111101111101',
+      '100000000100000000001',
+      '111111111111111111111'
+    ]
+  }
 ];
 
 const player = { x: 1.5 * CELL_SIZE, z: 1.5 * CELL_SIZE, yaw: 0, pitch: 0, speed: 3.6 };
 const keys = new Set();
 const messageGroup = new THREE.Group();
+const worldGroup = new THREE.Group();
+let currentLevelIndex = 0;
 let started = false;
 let previous = performance.now();
 
 function setStatus(text) { status.textContent = text; }
 function cellAt(x, z) { return { x: Math.floor(x / CELL_SIZE), z: Math.floor(z / CELL_SIZE) }; }
-function isExitCell(x, z) { const cell=cellAt(x,z); return cell.x===EXIT_CELL.x&&cell.z===EXIT_CELL.z; }
-function isWall(x, z) { const cell=cellAt(x,z),row=map[cell.z]; return !row || row[cell.x] !== '0'; }
+function isExitCell(x, z) { const level=LEVELS[currentLevelIndex];if(!level.exit)return false;const exit=transformedCell(level,level.exit),cell=cellAt(x,z);return cell.x===exit.x&&cell.z===exit.z; }
+function isWall(x, z) { const cell=cellAt(x,z),row=currentMap()[cell.z]; return !row || row[cell.x] !== '0'; }
 function blocksMovement(x, z) { return isWall(x,z) && !isExitCell(x,z); }
 function canStand(x, z) {
   const radius = 0.28;
@@ -71,7 +98,19 @@ const carpet = canvasTexture(256, (context, size) => {
   context.fillStyle='#958b58'; context.fillRect(0,0,size,size);
   for(let i=0;i<2600;i++){ const value=70+(i*29)%45; context.fillStyle=`rgba(${value},${value-7},${Math.max(25,value-38)},.13)`; context.fillRect((i*71)%size,(i*43)%size,1,1); }
 });
-carpet.repeat.set(map[0].length, map.length);
+
+const concreteWall = canvasTexture(256, (context, size) => {
+  context.fillStyle='#667073';context.fillRect(0,0,size,size);
+  for(let i=0;i<1200;i++){const shade=70+(i*41)%65;context.fillStyle=`rgba(${shade},${shade+3},${shade+4},.14)`;context.fillRect((i*67)%size,(i*101)%size,1+(i%3),1+(i%2));}
+  context.strokeStyle='rgba(30,37,39,.28)';context.lineWidth=2;context.beginPath();context.moveTo(0,128);context.lineTo(size,128);context.moveTo(128,0);context.lineTo(128,size);context.stroke();
+});
+concreteWall.repeat.set(1.4,2.2);
+
+const concreteFloor = canvasTexture(256, (context, size) => {
+  context.fillStyle='#333b3c';context.fillRect(0,0,size,size);
+  for(let i=0;i<1800;i++){const shade=38+(i*23)%45;context.fillStyle=`rgba(${shade},${shade+4},${shade+5},.18)`;context.fillRect((i*73)%size,(i*37)%size,1+(i%2),1);}
+  context.strokeStyle='rgba(9,12,13,.2)';context.lineWidth=1;for(let p=0;p<size;p+=64){context.beginPath();context.moveTo(p,0);context.lineTo(p,size);context.stroke();}
+});
 
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -81,40 +120,64 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.08;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x242314);
-scene.fog = new THREE.FogExp2(0x686238, 0.028);
-scene.add(messageGroup);
+scene.add(worldGroup,messageGroup);
 
 const camera = new THREE.PerspectiveCamera(72, innerWidth/innerHeight, .04, 60);
 camera.rotation.order='YXZ';
 scene.add(camera);
 
-const wallMaterial = new THREE.MeshStandardMaterial({ map: wallpaper, color: 0xf0e38a, roughness: .98, metalness: 0 });
-const wallGeometry = new THREE.BoxGeometry(CELL_SIZE,WALL_HEIGHT,CELL_SIZE);
-for (let z=0;z<map.length;z++) for(let x=0;x<map[z].length;x++) if(map[z][x]==='1') {
-  const wall=new THREE.Mesh(wallGeometry,wallMaterial);
-  wall.position.set((x+.5)*CELL_SIZE,WALL_HEIGHT/2,(z+.5)*CELL_SIZE);
-  if(x===EXIT_CELL.x&&z===EXIT_CELL.z)wall.userData.isExit=true;
-  scene.add(wall);
+function hashSeed(text){let hash=2166136261;for(const character of text){hash^=character.charCodeAt(0);hash=Math.imul(hash,16777619);}return hash>>>0;}
+function seededRandom(seed){let value=seed>>>0;return()=>{value+=0x6d2b79f5;let result=value;result=Math.imul(result^result>>>15,result|1);result^=result+Math.imul(result^result>>>7,result|61);return((result^result>>>14)>>>0)/4294967296;};}
+function seededMap(level){const variant=hashSeed(level.seed)%4;let rows=[...level.map];if(variant&1)rows=rows.map(row=>[...row].reverse().join(''));if(variant&2)rows.reverse();return rows;}
+function transformedCell(level,cell){const variant=hashSeed(level.seed)%4,width=level.map[0].length,height=level.map.length;return{x:variant&1?width-1-cell.x:cell.x,z:variant&2?height-1-cell.z:cell.z};}
+function transformedPoint(level,x,z){const variant=hashSeed(level.seed)%4,width=level.map[0].length,height=level.map.length;return{x:(variant&1?width-x:x)*CELL_SIZE,z:(variant&2?height-z:z)*CELL_SIZE};}
+function transformedYaw(level,yaw){const variant=hashSeed(level.seed)%4;if(variant&1)yaw=Math.PI-yaw;if(variant&2)yaw=-yaw;return yaw;}
+function currentMap(){return LEVELS[currentLevelIndex].seededMap;}
+
+function clearWorld(){
+  while(worldGroup.children.length){const object=worldGroup.children[0];worldGroup.remove(object);object.traverse(child=>{child.geometry?.dispose();if(child.material){for(const material of Array.isArray(child.material)?child.material:[child.material])material.dispose();}});}
 }
 
-const floorMaterial = new THREE.MeshStandardMaterial({ map: carpet, color: 0xb8ae77, roughness: 1 });
-const floor = new THREE.Mesh(new THREE.PlaneGeometry(map[0].length*CELL_SIZE,map.length*CELL_SIZE),floorMaterial);
-floor.rotation.x=-Math.PI/2; floor.position.set(map[0].length*CELL_SIZE/2,0,map.length*CELL_SIZE/2); scene.add(floor);
-const ceilingMaterial = new THREE.MeshStandardMaterial({ color: 0xc9c49a, roughness: .93, side: THREE.DoubleSide });
-const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(map[0].length*CELL_SIZE,map.length*CELL_SIZE),ceilingMaterial);
-ceiling.rotation.x=Math.PI/2; ceiling.position.set(map[0].length*CELL_SIZE/2,WALL_HEIGHT,map.length*CELL_SIZE/2); scene.add(ceiling);
-
-scene.add(new THREE.HemisphereLight(0xeee8a8,0x514b28,1.12));
-scene.add(new THREE.AmbientLight(0x8d8652,.24));
-const lightMaterial = new THREE.MeshBasicMaterial({color:0xfff7b0});
-const fixtureGeometry = new THREE.BoxGeometry(1.3,.035,.18);
-for (const [x,z] of [[2.5,1.5],[6.5,1.5],[9.5,1.5],[13.5,1.5],[1.5,5.5],[5.5,5.5],[9.5,5.5],[13.5,9.5],[6.5,9.5]]) {
-  const worldX=x*CELL_SIZE,worldZ=z*CELL_SIZE;
-  if(isWall(worldX,worldZ)) continue;
-  const fixture=new THREE.Mesh(fixtureGeometry,lightMaterial); fixture.position.set(worldX,WALL_HEIGHT-.035,worldZ); scene.add(fixture);
-  const light=new THREE.PointLight(0xffefa0,2.3,9,1.7); light.position.set(worldX,WALL_HEIGHT-.28,worldZ); scene.add(light);
+function addLevelOneDetails(level,random){
+  const pipeMaterial=new THREE.MeshStandardMaterial({color:0x793f31,roughness:.72,metalness:.35});
+  const pipePosition=transformedPoint(level,5.5,1.09),pipe=new THREE.Mesh(new THREE.CylinderGeometry(.075,.075,15.5,10),pipeMaterial);pipe.rotation.z=Math.PI/2;pipe.position.set(pipePosition.x,level.wallHeight-.3,pipePosition.z);worldGroup.add(pipe);
+  const puddleMaterial=new THREE.MeshStandardMaterial({color:0x111b1f,roughness:.16,metalness:.25,transparent:true,opacity:.72,side:THREE.DoubleSide});
+  for(const [x,z] of [[5.5,1.5],[3.5,5.5],[10.5,7.5],[17.5,11.5]]){const point=transformedPoint(level,x,z),puddle=new THREE.Mesh(new THREE.CircleGeometry(.45+random()*.55,32),puddleMaterial);puddle.rotation.x=-Math.PI/2;puddle.scale.x=.65+random()*1.5;puddle.position.set(point.x,.012,point.z);worldGroup.add(puddle);}
+  for(const [x,z] of [[9.5,1.5],[13.5,5.5]]){const point=transformedPoint(level,x,z),glow=new THREE.PointLight(0xd64b31,3.3,7,1.9);glow.position.set(point.x,level.wallHeight-.5,point.z);worldGroup.add(glow);}
 }
+
+function buildWorld(){
+  clearWorld();
+  const level=LEVELS[currentLevelIndex],map=currentMap(),width=map[0].length,height=map.length,random=seededRandom(hashSeed(level.seed));
+  const isLevelOne=currentLevelIndex===1;
+  scene.background=new THREE.Color(level.background);scene.fog=new THREE.FogExp2(level.fog,level.fogDensity);renderer.toneMappingExposure=isLevelOne?1.32:1.08;
+  const wallMaterial=new THREE.MeshStandardMaterial({map:isLevelOne?concreteWall:wallpaper,color:isLevelOne?0x869093:0xf0e38a,roughness:isLevelOne?.88:.98,metalness:0});
+  const wallGeometry=new THREE.BoxGeometry(CELL_SIZE,level.wallHeight,CELL_SIZE);
+  const exit=level.exit?transformedCell(level,level.exit):null;
+  for(let z=0;z<height;z++)for(let x=0;x<width;x++)if(map[z][x]==='1'){const wall=new THREE.Mesh(wallGeometry,wallMaterial);wall.position.set((x+.5)*CELL_SIZE,level.wallHeight/2,(z+.5)*CELL_SIZE);if(exit&&x===exit.x&&z===exit.z)wall.userData.isExit=true;worldGroup.add(wall);}
+  const floorTexture=isLevelOne?concreteFloor:carpet;floorTexture.repeat.set(width,height);
+  const floorMaterial=new THREE.MeshStandardMaterial({map:floorTexture,color:isLevelOne?0x788386:0xb8ae77,roughness:isLevelOne?.72:1,metalness:isLevelOne?.08:0});
+  const floor=new THREE.Mesh(new THREE.PlaneGeometry(width*CELL_SIZE,height*CELL_SIZE),floorMaterial);floor.rotation.x=-Math.PI/2;floor.position.set(width*CELL_SIZE/2,0,height*CELL_SIZE/2);worldGroup.add(floor);
+  const ceilingMaterial=new THREE.MeshStandardMaterial({color:isLevelOne?0x30393b:0xc9c49a,roughness:.93,side:THREE.DoubleSide});
+  const ceiling=new THREE.Mesh(new THREE.PlaneGeometry(width*CELL_SIZE,height*CELL_SIZE),ceilingMaterial);ceiling.rotation.x=Math.PI/2;ceiling.position.set(width*CELL_SIZE/2,level.wallHeight,height*CELL_SIZE/2);worldGroup.add(ceiling);
+  worldGroup.add(new THREE.HemisphereLight(isLevelOne?0xa9bcc0:0xeee8a8,isLevelOne?0x263235:0x514b28,isLevelOne?.82:1.12));
+  worldGroup.add(new THREE.AmbientLight(isLevelOne?0x718084:0x8d8652,isLevelOne?.46:.24));
+  const lightColor=isLevelOne?0xffb06a:0xfff7b0,lightMaterial=new THREE.MeshBasicMaterial({color:lightColor}),fixtureGeometry=new THREE.BoxGeometry(isLevelOne?.85:1.3,.035,isLevelOne?.3:.18);
+  for(const [cellX,cellZ] of level.lights){const cell=transformedCell(level,{x:cellX-.5,z:cellZ-.5}),worldX=(cell.x+.5)*CELL_SIZE,worldZ=(cell.z+.5)*CELL_SIZE;if(isWall(worldX,worldZ))continue;const fixture=new THREE.Mesh(fixtureGeometry,lightMaterial);fixture.position.set(worldX,level.wallHeight-.035,worldZ);worldGroup.add(fixture);const light=new THREE.PointLight(lightColor,(isLevelOne?3.8:2.15)+random()*.5,isLevelOne?11:9,1.75);light.position.set(worldX,level.wallHeight-.3,worldZ);worldGroup.add(light);}
+  if(isLevelOne)addLevelOneDetails(level,random);
+}
+
+LEVELS.forEach(level=>{level.seededMap=seededMap(level);});
+buildWorld();
+
+async function syncLevelSeeds(){
+  await Promise.all(LEVELS.map(async level=>{
+    try{const response=await fetch(`${API}/repos/${config.messageOwner}/${config.messageRepo}/issues/${level.issueNumber}`,{headers:{Accept:'application/vnd.github+json','X-GitHub-Api-Version':config.githubApiVersion}});if(!response.ok)throw new Error(response.status);const issue=await response.json();if(typeof issue.title==='string'&&issue.title.trim())level.seed=issue.title.trim();}catch{/* The configured fallback title keeps the level deterministic offline. */}
+    level.seededMap=seededMap(level);
+  }));
+  if(!started&&currentLevelIndex===0)buildWorld();
+}
+const metadataReady=syncLevelSeeds();
 
 function updateCamera() {
   camera.position.set(player.x,1.68,player.z);
@@ -179,18 +242,20 @@ function placeMessage(message) {
 
 function clearMessages(){while(messageGroup.children.length){const note=messageGroup.children[0];messageGroup.remove(note);note.geometry.dispose();note.material.map.dispose();note.material.dispose();}}
 
-async function loadMessages() {
+async function loadMessages(levelIndex=currentLevelIndex) {
+  const level=LEVELS[levelIndex];
   try {
     let comments=[];
     for(let page=1;page<=10;page++){
-      const response=await fetch(`${API}/repos/${config.messageOwner}/${config.messageRepo}/issues/${config.messageIssueNumber}/comments?per_page=100&page=${page}`,{headers:{Accept:'application/vnd.github+json','X-GitHub-Api-Version':config.githubApiVersion}});
+      const response=await fetch(`${API}/repos/${config.messageOwner}/${config.messageRepo}/issues/${level.issueNumber}/comments?per_page=100&page=${page}`,{headers:{Accept:'application/vnd.github+json','X-GitHub-Api-Version':config.githubApiVersion}});
       if(!response.ok)throw new Error(response.status);
       const items=await response.json(); comments.push(...items); if(items.length<100)break;
     }
-    const messages=comments.map(comment=>{try{const record=JSON.parse(comment.body);if(record.version!==1||!record.position||typeof record.text!=='string')return null;const sourceScale=Number.isFinite(record.worldScale)?record.worldScale:1,scale=CELL_SIZE/sourceScale;return {...record,position:{x:record.position.x*scale,z:record.position.z*scale},id:comment.id};}catch{return null;}}).filter(Boolean);
+    if(levelIndex!==currentLevelIndex)return;
+    const messages=comments.map(comment=>{try{const record=JSON.parse(comment.body);if(record.version!==1||!record.position||typeof record.text!=='string'||record.seed&&record.seed!==level.seed)return null;const sourceScale=Number.isFinite(record.worldScale)?record.worldScale:1,scale=CELL_SIZE/sourceScale;return {...record,position:{x:record.position.x*scale,z:record.position.z*scale},id:comment.id};}catch{return null;}}).filter(Boolean);
     clearMessages(); messages.forEach(placeMessage);
     setStatus(messages.length?`${messages.length} traces are on these walls.`:'No one has marked these walls yet.');
-  } catch { setStatus('Could not read the wall log. You can still explore.'); }
+  } catch { if(levelIndex===currentLevelIndex)setStatus('Could not read the wall log. You can still explore.'); }
 }
 
 function markSurface() {
@@ -213,6 +278,18 @@ function reachExit(){
   started=false;keys.clear();document.exitPointerLock();levelCompletePanel.classList.remove('hidden');setStatus('You found the wall that lied.');
 }
 
+function enterLevel(levelIndex){
+  currentLevelIndex=levelIndex;
+  const level=LEVELS[levelIndex];
+  buildWorld();clearMessages();
+  const spawn=transformedPoint(level,level.spawn.x,level.spawn.z);player.x=spawn.x;player.z=spawn.z;player.yaw=transformedYaw(level,level.spawn.yaw);player.pitch=0;
+  levelLabel.innerHTML=`LEVEL ${level.number} <span>///</span> ${level.tagline}`;
+  document.title=`BACKROOMS // LEVEL ${level.number}`;document.body.dataset.level=String(level.number);
+  document.querySelectorAll('.panel').forEach(panel=>panel.classList.add('hidden'));
+  setStatus(levelIndex===0?'Find the wall that does not hold.':'Concrete, pipes, and distant machinery. Leave a trace.');
+  started=true;canvas.requestPointerLock();loadMessages(levelIndex);
+}
+
 function openPanel(element){element.classList.remove('hidden');document.exitPointerLock();}
 function closePanels(){document.querySelectorAll('.panel:not(.start)').forEach(element=>element.classList.add('hidden'));}
 document.querySelectorAll('[data-close]').forEach(button=>button.addEventListener('click',closePanels));
@@ -230,13 +307,13 @@ function updateMarkerIdentity(){markerIdentity.textContent=nameInput.value.trim(
 updateMarkerIdentity();
 nameInput.addEventListener('input',updateMarkerIdentity);
 colorInput.addEventListener('input',updateMarkerIdentity);
-document.querySelector('#enter').addEventListener('click',()=>{
+document.querySelector('#enter').addEventListener('click',async()=>{
   const name=nameInput.value.trim(),token=tokenInput.value.trim();
   if(!name){welcomeError.textContent='Choose a marker name before entering.';nameInput.focus();return;}
   if(!token){welcomeError.textContent='Paste a GitHub token or create one before entering.';tokenInput.focus();return;}
-  localStorage.setItem('backrooms-marker-name',name);localStorage.setItem('backrooms-marker-color',colorInput.value);sessionStorage.setItem('backrooms-player-token',token);welcomeError.textContent='';updateMarkerIdentity();document.querySelector('#start-panel').classList.add('hidden');started=true;canvas.requestPointerLock();loadMessages();
+  localStorage.setItem('backrooms-marker-name',name);localStorage.setItem('backrooms-marker-color',colorInput.value);sessionStorage.setItem('backrooms-player-token',token);welcomeError.textContent='';updateMarkerIdentity();await metadataReady;enterLevel(0);
 });
-document.querySelector('#restart-level').addEventListener('click',()=>location.reload());
+document.querySelector('#enter-level-one').addEventListener('click',()=>enterLevel(1));
 
 document.querySelector('#send-message').addEventListener('click',async()=>{
   const text=textArea.value.trim(),name=nameInput.value.trim()||'Unknown wanderer',color=colorInput.value,token=tokenInput.value.trim(),send=document.querySelector('#send-message');
@@ -246,8 +323,8 @@ document.querySelector('#send-message').addEventListener('click',async()=>{
   if(!surface){setStatus('Move closer and face a wall before writing.');return;}
   localStorage.setItem('backrooms-marker-name',name);localStorage.setItem('backrooms-marker-color',color);sessionStorage.setItem('backrooms-player-token',token);send.disabled=true;
   try{
-    const record={version:1,worldScale:CELL_SIZE,level:0,position:{x:surface.x,z:surface.z},surfaceNormalAngle:surface.normal,text:`${text}\n— ${name}`,author:{name,color},createdAt:new Date().toISOString()};
-    const response=await fetch(`${API}/repos/${config.messageOwner}/${config.messageRepo}/issues/${config.messageIssueNumber}/comments`,{method:'POST',headers:{Accept:'application/vnd.github+json',Authorization:`Bearer ${token}`,'X-GitHub-Api-Version':config.githubApiVersion,'Content-Type':'application/json'},body:JSON.stringify({body:JSON.stringify(record)})});
+    const level=LEVELS[currentLevelIndex],record={version:1,worldScale:CELL_SIZE,level:currentLevelIndex,seed:level.seed,position:{x:surface.x,z:surface.z},surfaceNormalAngle:surface.normal,text:`${text}\n— ${name}`,author:{name,color},createdAt:new Date().toISOString()};
+    const response=await fetch(`${API}/repos/${config.messageOwner}/${config.messageRepo}/issues/${level.issueNumber}/comments`,{method:'POST',headers:{Accept:'application/vnd.github+json',Authorization:`Bearer ${token}`,'X-GitHub-Api-Version':config.githubApiVersion,'Content-Type':'application/json'},body:JSON.stringify({body:JSON.stringify(record)})});
     const result=await response.json();if(!response.ok)throw new Error(result.message||response.status);
     placeMessage({...record,id:result.id});textArea.value='';document.querySelector('#count').textContent='0';closePanels();setStatus('The wall remembers what you wrote.');
   }catch(error){setStatus(`The marker failed: ${error.message}.`);}finally{send.disabled=false;}

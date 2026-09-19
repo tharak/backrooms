@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#c8bd4f" />
     <title>BACKROOMS // LEVEL 0</title>
-    <link rel="stylesheet" href="styles.css?v=level-exit" />
+    <link rel="stylesheet" href="styles.css?v=level-one" />
     <script type="importmap">
       { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js" } }
     </script>
@@ -15,7 +15,7 @@
       <canvas id="game" aria-label="First-person Backrooms view"></canvas>
       <div id="grain" aria-hidden="true"></div>
       <header class="hud">
-        <p class="eyebrow">LEVEL 0 <span>///</span> YOU ARE NOT ALONE</p>
+        <p id="level-label" class="eyebrow">LEVEL 0 <span>///</span> YOU ARE NOT ALONE</p>
         <p id="status" role="status">Find a place worth marking.</p>
       </header>
       <aside class="controls" aria-label="Game controls">WASD <span>MOVE</span> · MOUSE <span>LOOK</span> · E <span>MARK</span></aside>
@@ -51,11 +51,11 @@
       <section id="level-complete" class="level-complete panel hidden" aria-labelledby="level-complete-title">
         <p class="eyebrow">LEVEL 0 COMPLETE</p>
         <h1 id="level-complete-title">LEVEL 1<br /><span>HABITABLE ZONE</span></h1>
-        <p>You passed through a wall that should have been solid. The humming fades, but something else is waiting ahead.</p>
-        <button id="restart-level" class="button" type="button">RE-ENTER LEVEL 0</button>
+        <p>You passed through a wall that should have been solid. Concrete corridors and rusted pipes wait beyond it.</p>
+        <button id="enter-level-one" class="button" type="button">ENTER LEVEL 1</button>
       </section>
     </main>
     <script src="js/config.js"></script>
-    <script type="module" src="js/game.js?v=level-exit"></script>
+    <script type="module" src="js/game.js?v=level-one"></script>
   </body>
 </html>

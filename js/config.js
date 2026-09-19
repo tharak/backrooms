@@ -1,6 +1,6 @@
 window.BACKROOMS_CONFIG = {
   messageOwner: "tharak",
   messageRepo: "backrooms-messages",
-  messageIssueNumber: 1,
+  messageIssueNumbers: [1, 2],
   githubApiVersion: "2026-03-10"
 };
