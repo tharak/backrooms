@@ -30,6 +30,6 @@ Messages are stored as JSON comments in the separate public [`tharak/backrooms-m
 
 Players can read without signing in. To write, they choose a name/color and paste their own classic `public_repo` token; the game appends the name to every note and stores it as a public comment on the current level's issue. The token stays only in the current browser session. Repository owners can moderate or close either issue in GitHub.
 
-Changing an issue title creates a different deterministic level variant. New messages include that exact seed title, so they only render for the matching variant; legacy Level 0 comments without seed metadata remain supported.
+Changing an issue title creates a different deterministic level variant. Messages are tied to their issue number, so they remain associated with that level when its title changes.
 
 For the issue-by-issue layout and moderation notes, see the [message repository tutorial](https://github.com/tharak/backrooms-messages#backrooms-message-repository).
