@@ -13,6 +13,8 @@ const markerIdentity = document.querySelector('#marker-identity');
 const welcomeError = document.querySelector('#welcome-error');
 const levelLabel = document.querySelector('#level-label');
 const flashlightToggle = document.querySelector('#flashlight-toggle');
+const minimap = document.querySelector('#minimap');
+const minimapContext = minimap.getContext('2d');
 const API = 'https://api.github.com';
 
 const CELL_SIZE = 2;
@@ -162,6 +164,27 @@ function transformedCell(level,cell){const variant=hashSeed(level.seed)%4,width=
 function transformedPoint(level,x,z){const variant=hashSeed(level.seed)%4,width=level.map[0].length,height=level.map.length;return{x:(variant&1?width-x:x)*CELL_SIZE,z:(variant&2?height-z:z)*CELL_SIZE};}
 function transformedYaw(level,yaw){const variant=hashSeed(level.seed)%4;if(variant&1)yaw=Math.PI-yaw;if(variant&2)yaw=-yaw;return yaw;}
 function currentMap(){return LEVELS[currentLevelIndex].seededMap;}
+
+function drawMinimap(){
+  if(!started)return;
+  const map=currentMap(),width=map[0].length,height=map.length,pad=12;
+  const scale=Math.min((minimap.width-pad*2)/width,(minimap.height-pad*2)/height);
+  const offsetX=(minimap.width-width*scale)/2,offsetZ=(minimap.height-height*scale)/2;
+  const context=minimapContext;
+  context.clearRect(0,0,minimap.width,minimap.height);
+  context.fillStyle='#111615e8';context.fillRect(0,0,minimap.width,minimap.height);
+  context.fillStyle=currentLevelIndex===0?'#29291c':'#202a2c';
+  context.fillRect(offsetX,offsetZ,width*scale,height*scale);
+  context.fillStyle=currentLevelIndex===0?'#a39a62':'#718083';
+  for(let z=0;z<height;z++)for(let x=0;x<width;x++)if(map[z][x]==='1')context.fillRect(offsetX+x*scale,offsetZ+z*scale,Math.ceil(scale)+.25,Math.ceil(scale)+.25);
+  const level=LEVELS[currentLevelIndex];
+  const drawDoor=(door,color)=>{if(!door)return;const cell=transformedCell(level,door);context.fillStyle=color;context.fillRect(offsetX+cell.x*scale,offsetZ+cell.z*scale,Math.max(3,scale),Math.max(3,scale));};
+  drawDoor(level.returnWall,'#65c4c2');drawDoor(level.exit,'#f0a45f');
+  const playerX=offsetX+(player.x/CELL_SIZE)*scale,playerZ=offsetZ+(player.z/CELL_SIZE)*scale;
+  context.strokeStyle='#f8e879';context.lineWidth=1.5;context.beginPath();context.moveTo(playerX,playerZ);context.lineTo(playerX+Math.cos(player.yaw)*scale*1.8,playerZ+Math.sin(player.yaw)*scale*1.8);context.stroke();
+  context.fillStyle='#f8e879';context.beginPath();context.arc(playerX,playerZ,Math.max(3,scale*.2),0,Math.PI*2);context.fill();
+  context.fillStyle='#f5edb4';context.font='10px ui-monospace, monospace';context.fillText(`LEVEL ${level.number}`,8,12);
+}
 
 function clearWorld(){
   while(worldGroup.children.length){const object=worldGroup.children[0];worldGroup.remove(object);object.traverse(child=>{child.geometry?.dispose();if(child.material){for(const material of Array.isArray(child.material)?child.material:[child.material])material.dispose();}});}
@@ -316,8 +339,9 @@ function enterLevel(levelIndex,arrival=null,entryStatus=null){
   levelLabel.innerHTML=`LEVEL ${level.number} <span>///</span> ${level.tagline}`;
   document.title=`BACKROOMS // LEVEL ${level.number}`;document.body.dataset.level=String(level.number);
   document.querySelectorAll('.panel').forEach(panel=>panel.classList.add('hidden'));
+  minimap.classList.remove('hidden');
   setStatus(entryStatus||(levelIndex===0?'Find the wall that does not hold.':'Concrete, pipes, and distant machinery. Leave a trace.'));
-  started=true;canvas.requestPointerLock();loadMessages(levelIndex);
+  started=true;drawMinimap();canvas.requestPointerLock();loadMessages(levelIndex);
 }
 
 function openPanel(element){element.classList.remove('hidden');document.exitPointerLock();}
@@ -362,7 +386,7 @@ document.querySelector('#send-message').addEventListener('click',async()=>{
 function animate(now){
   const dt=Math.min(.05,(now-previous)/1000);previous=now;
   if(started){const forward=(keys.has('w')?1:0)-(keys.has('s')?1:0),side=(keys.has('d')?1:0)-(keys.has('a')?1:0),length=Math.hypot(forward,side)||1,speed=player.speed*dt,nx=player.x+(Math.cos(player.yaw)*forward+Math.cos(player.yaw+Math.PI/2)*side)/length*speed,nz=player.z+(Math.sin(player.yaw)*forward+Math.sin(player.yaw+Math.PI/2)*side)/length*speed;if(canStand(nx,player.z))player.x=nx;if(canStand(player.x,nz))player.z=nz;const transition=transitionAt(player.x,player.z);if(transition)reachTransition(transition);}
-  updateCamera();renderer.render(scene,camera);requestAnimationFrame(animate);
+  updateCamera();drawMinimap();renderer.render(scene,camera);requestAnimationFrame(animate);
 }
 requestAnimationFrame(animate);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight,false);renderer.setPixelRatio(Math.min(devicePixelRatio,2));});

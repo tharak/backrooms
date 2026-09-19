@@ -14,7 +14,7 @@ Players do not need to sign in with GitHub to explore or read messages. A token 
 2. On the welcome screen, click **CREATE TOKEN ↗**. This opens GitHub's classic personal-access-token page.
 3. Sign in to GitHub if asked. Give the token a short name such as `Backrooms marker`, choose an expiration, select only the `public_repo` scope, and generate it. GitHub shows the token only once, so copy it immediately.
 4. Paste the token into **GITHUB TOKEN** in the game. Choose a marker name and color, then click **ENTER LEVEL 0**.
-5. Explore with **WASD** and look with the mouse. Press **F** or click **FLASHLIGHT: OFF** to toggle your handheld beam. Press **E** or click the marker to write. Face a wall, type up to 280 characters, and click **WRITE ON THE WALL**. Your chosen name is appended automatically.
+5. Explore with **WASD** and look with the mouse. The minimap in the upper-right shows walls, doors, and your facing direction. Press **F** or click **FLASHLIGHT: OFF** to toggle your handheld beam. Press **E** or click the marker to write. Face a wall, type up to 280 characters, and click **WRITE ON THE WALL**. Your chosen name is appended automatically.
 6. Find the ordinary-looking transition wall in each level. Walking through it changes levels without a popup; the entrance wall behind your starting position always takes you back. Level 9's forward door loops to Level 0.
 
 Keep the token private. The game stores it only in this browser tab's session storage and sends it only to GitHub's API when posting. Use a dedicated token with the smallest scope, never paste it into a message, and revoke it from GitHub after testing if you no longer need it.
