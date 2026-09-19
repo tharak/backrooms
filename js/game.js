@@ -11,7 +11,6 @@ const colorInput = document.querySelector('#marker-color');
 const tokenInput = document.querySelector('#github-token');
 const markerIdentity = document.querySelector('#marker-identity');
 const welcomeError = document.querySelector('#welcome-error');
-const levelCompletePanel = document.querySelector('#level-complete');
 const levelLabel = document.querySelector('#level-label');
 const flashlightToggle = document.querySelector('#flashlight-toggle');
 const API = 'https://api.github.com';
@@ -289,7 +288,7 @@ function markSurface() {
 function reachTransition(transition){
   if(!started)return;
   if(transition.target===0){enterLevel(0,LEVELS[0].returnSpawn,'Back in Level 0. The wall still remembers the way through.');return;}
-  started=false;keys.clear();document.exitPointerLock();levelCompletePanel.classList.remove('hidden');setStatus('You found the wall that lied.');
+  enterLevel(1,null,'Level 1. Concrete, pipes, and distant machinery.');
 }
 
 function enterLevel(levelIndex,arrival=null,entryStatus=null){
@@ -328,8 +327,6 @@ document.querySelector('#enter').addEventListener('click',async()=>{
   if(!token){welcomeError.textContent='Paste a GitHub token or create one before entering.';tokenInput.focus();return;}
   localStorage.setItem('backrooms-marker-name',name);localStorage.setItem('backrooms-marker-color',colorInput.value);sessionStorage.setItem('backrooms-player-token',token);welcomeError.textContent='';updateMarkerIdentity();await metadataReady;enterLevel(0);
 });
-document.querySelector('#enter-level-one').addEventListener('click',()=>enterLevel(1));
-
 document.querySelector('#send-message').addEventListener('click',async()=>{
   const text=textArea.value.trim(),name=nameInput.value.trim()||'Unknown wanderer',color=colorInput.value,token=tokenInput.value.trim(),send=document.querySelector('#send-message');
   if(!text)return;
