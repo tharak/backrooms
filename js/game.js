@@ -36,7 +36,7 @@ const LEVELS = [
     ]
   },
   {
-    number:1,name:'HABITABLE ZONE',tagline:'DO NOT FOLLOW THE PIPES',issueNumber:config.messageIssueNumbers?.[1]||2,seed:'LEVEL 1 // HABITABLE ZONE // cold-concrete',wallHeight:3.6,spawn:{x:1.5,z:1.5,yaw:0},exit:null,returnWall:{x:0,z:1},
+    number:1,name:'HABITABLE ZONE',tagline:'DO NOT FOLLOW THE PIPES',issueNumber:config.messageIssueNumbers?.[1]||2,seed:'LEVEL 1 // HABITABLE ZONE // cold-concrete',wallHeight:3.6,spawn:{x:1.5,z:1.5,yaw:0},exit:{x:10,z:1},exitTarget:2,returnWall:{x:0,z:1},returnTarget:0,returnSpawn:{x:9.5,z:1.5,yaw:Math.PI},
     background:0x1b2326,fog:0x3b474a,fogDensity:.019,
     lights:[[2.5,1.5],[6.5,1.5],[11.5,1.5],[17.5,1.5],[3.5,3.5],[9.5,3.5],[15.5,3.5],[1.5,5.5],[7.5,5.5],[13.5,5.5],[18.5,5.5],[3.5,7.5],[9.5,7.5],[15.5,7.5],[1.5,9.5],[7.5,9.5],[13.5,9.5],[18.5,11.5],[5.5,11.5]],
     map:[
@@ -57,6 +57,23 @@ const LEVELS = [
   }
 ];
 
+const additionalLevelProfiles=[
+  ['SERVICE TUNNELS','FOLLOW THE RED PIPE','red-static'],
+  ['THE HUB','LISTEN FOR THE HUM','fluorescent-hum'],
+  ['ABANDONED OFFICES','THE PHONES STILL RING','stale-air'],
+  ['TERROR HOTEL','DO NOT ANSWER','endless-bell'],
+  ['THE SUBURBS','NIGHT HAS NO SKY','night-wind'],
+  ['THALASSOPHOBIA','THE WATER IS ABOVE YOU','blue-depth'],
+  ['CAVE SYSTEM','LIMESTONE REMEMBERS','limestone-echo'],
+  ['THE END','WHITE NOISE IS A DOOR','white-noise']
+];
+for(let number=2;number<=9;number++){
+  const [name,tagline,seedName]=additionalLevelProfiles[number-2];
+  LEVELS.push({number,name,tagline,issueNumber:config.messageIssueNumbers?.[number]||number+1,seed:`LEVEL ${number} // ${name} // ${seedName}`,wallHeight:3.6,spawn:{x:1.5,z:1.5,yaw:0},exit:{x:10,z:1},exitTarget:number===9?0:number+1,returnWall:{x:0,z:1},returnTarget:number-1,returnSpawn:{x:9.5,z:1.5,yaw:Math.PI},background:0x1b2326,fog:0x3b474a,fogDensity:.019,lights:[],map:null});
+  LEVELS[number].lights=LEVELS[1].lights.map(light=>[...light]);
+  LEVELS[number].map=LEVELS[1].map;
+}
+
 const player = { x: 1.5 * CELL_SIZE, z: 1.5 * CELL_SIZE, yaw: 0, pitch: 0, speed: 3.6 };
 const keys = new Set();
 const messageGroup = new THREE.Group();
@@ -67,7 +84,7 @@ let previous = performance.now();
 
 function setStatus(text) { status.textContent = text; }
 function cellAt(x, z) { return { x: Math.floor(x / CELL_SIZE), z: Math.floor(z / CELL_SIZE) }; }
-function transitionAt(x,z){const level=LEVELS[currentLevelIndex],cell=cellAt(x,z);if(level.exit){const exit=transformedCell(level,level.exit);if(cell.x===exit.x&&cell.z===exit.z)return {target:1};}if(level.returnWall){const wall=transformedCell(level,level.returnWall);if(cell.x===wall.x&&cell.z===wall.z)return {target:0};}return null;}
+function transitionAt(x,z){const level=LEVELS[currentLevelIndex],cell=cellAt(x,z);if(level.exit){const exit=transformedCell(level,level.exit);if(cell.x===exit.x&&cell.z===exit.z)return {target:level.exitTarget??currentLevelIndex+1};}if(level.returnWall){const wall=transformedCell(level,level.returnWall);if(cell.x===wall.x&&cell.z===wall.z)return {target:level.returnTarget??currentLevelIndex-1,returning:true};}return null;}
 function isTransitionCell(x,z){return Boolean(transitionAt(x,z));}
 function isWall(x, z) { const cell=cellAt(x,z),row=currentMap()[cell.z]; return !row || row[cell.x] !== '0'; }
 function blocksMovement(x, z) { return isWall(x,z) && !isTransitionCell(x,z); }
@@ -161,22 +178,22 @@ function addLevelOneDetails(level,random){
 function buildWorld(){
   clearWorld();
   const level=LEVELS[currentLevelIndex],map=currentMap(),width=map[0].length,height=map.length,random=seededRandom(hashSeed(level.seed));
-  const isLevelOne=currentLevelIndex===1;
-  scene.background=new THREE.Color(level.background);scene.fog=new THREE.FogExp2(level.fog,level.fogDensity);renderer.toneMappingExposure=isLevelOne?1.32:1.08;
-  const wallMaterial=new THREE.MeshStandardMaterial({map:isLevelOne?concreteWall:wallpaper,color:isLevelOne?0x869093:0xf0e38a,roughness:isLevelOne?.88:.98,metalness:0});
+  const isConcrete=currentLevelIndex>0;
+  scene.background=new THREE.Color(level.background);scene.fog=new THREE.FogExp2(level.fog,level.fogDensity);renderer.toneMappingExposure=isConcrete?1.32:1.08;
+  const wallMaterial=new THREE.MeshStandardMaterial({map:isConcrete?concreteWall:wallpaper,color:isConcrete?0x869093:0xf0e38a,roughness:isConcrete?.88:.98,metalness:0});
   const wallGeometry=new THREE.BoxGeometry(CELL_SIZE,level.wallHeight,CELL_SIZE);
   const transition=level.exit||level.returnWall,transitionCell=transition?transformedCell(level,transition):null;
   for(let z=0;z<height;z++)for(let x=0;x<width;x++)if(map[z][x]==='1'){const wall=new THREE.Mesh(wallGeometry,wallMaterial);wall.position.set((x+.5)*CELL_SIZE,level.wallHeight/2,(z+.5)*CELL_SIZE);if(transitionCell&&x===transitionCell.x&&z===transitionCell.z)wall.userData.isTransition=true;worldGroup.add(wall);}
-  const floorTexture=isLevelOne?concreteFloor:carpet;floorTexture.repeat.set(width,height);
-  const floorMaterial=new THREE.MeshStandardMaterial({map:floorTexture,color:isLevelOne?0x788386:0xb8ae77,roughness:isLevelOne?.72:1,metalness:isLevelOne?.08:0});
+  const floorTexture=isConcrete?concreteFloor:carpet;floorTexture.repeat.set(width,height);
+  const floorMaterial=new THREE.MeshStandardMaterial({map:floorTexture,color:isConcrete?0x788386:0xb8ae77,roughness:isConcrete?.72:1,metalness:isConcrete?.08:0});
   const floor=new THREE.Mesh(new THREE.PlaneGeometry(width*CELL_SIZE,height*CELL_SIZE),floorMaterial);floor.rotation.x=-Math.PI/2;floor.position.set(width*CELL_SIZE/2,0,height*CELL_SIZE/2);worldGroup.add(floor);
-  const ceilingMaterial=new THREE.MeshStandardMaterial({color:isLevelOne?0x30393b:0xc9c49a,roughness:.93,side:THREE.DoubleSide});
+  const ceilingMaterial=new THREE.MeshStandardMaterial({color:isConcrete?0x30393b:0xc9c49a,roughness:.93,side:THREE.DoubleSide});
   const ceiling=new THREE.Mesh(new THREE.PlaneGeometry(width*CELL_SIZE,height*CELL_SIZE),ceilingMaterial);ceiling.rotation.x=Math.PI/2;ceiling.position.set(width*CELL_SIZE/2,level.wallHeight,height*CELL_SIZE/2);worldGroup.add(ceiling);
-  worldGroup.add(new THREE.HemisphereLight(isLevelOne?0xa9bcc0:0xeee8a8,isLevelOne?0x263235:0x514b28,isLevelOne?.82:1.12));
-  worldGroup.add(new THREE.AmbientLight(isLevelOne?0x718084:0x8d8652,isLevelOne?.46:.24));
-  const lightColor=isLevelOne?0xffb06a:0xfff7b0,lightMaterial=new THREE.MeshBasicMaterial({color:lightColor}),fixtureGeometry=new THREE.BoxGeometry(isLevelOne?.85:1.3,.035,isLevelOne?.3:.18);
-  for(const [cellX,cellZ] of level.lights){const cell=transformedCell(level,{x:cellX-.5,z:cellZ-.5}),worldX=(cell.x+.5)*CELL_SIZE,worldZ=(cell.z+.5)*CELL_SIZE;if(isWall(worldX,worldZ))continue;const fixture=new THREE.Mesh(fixtureGeometry,lightMaterial);fixture.position.set(worldX,level.wallHeight-.035,worldZ);worldGroup.add(fixture);const light=new THREE.PointLight(lightColor,(isLevelOne?3.8:2.15)+random()*.5,isLevelOne?11:9,1.75);light.position.set(worldX,level.wallHeight-.3,worldZ);worldGroup.add(light);}
-  if(isLevelOne)addLevelOneDetails(level,random);
+  worldGroup.add(new THREE.HemisphereLight(isConcrete?0xa9bcc0:0xeee8a8,isConcrete?0x263235:0x514b28,isConcrete?.82:1.12));
+  worldGroup.add(new THREE.AmbientLight(isConcrete?0x718084:0x8d8652,isConcrete?.46:.24));
+  const lightColor=isConcrete?0xffb06a:0xfff7b0,lightMaterial=new THREE.MeshBasicMaterial({color:lightColor}),fixtureGeometry=new THREE.BoxGeometry(isConcrete?.85:1.3,.035,isConcrete?.3:.18);
+  for(const [cellX,cellZ] of level.lights){const cell=transformedCell(level,{x:cellX-.5,z:cellZ-.5}),worldX=(cell.x+.5)*CELL_SIZE,worldZ=(cell.z+.5)*CELL_SIZE;if(isWall(worldX,worldZ))continue;const fixture=new THREE.Mesh(fixtureGeometry,lightMaterial);fixture.position.set(worldX,level.wallHeight-.035,worldZ);worldGroup.add(fixture);const light=new THREE.PointLight(lightColor,(isConcrete?3.8:2.15)+random()*.5,isConcrete?11:9,1.75);light.position.set(worldX,level.wallHeight-.3,worldZ);worldGroup.add(light);}
+  if(isConcrete)addLevelOneDetails(level,random);
 }
 
 LEVELS.forEach(level=>{level.seededMap=seededMap(level);});
@@ -287,8 +304,8 @@ function markSurface() {
 
 function reachTransition(transition){
   if(!started)return;
-  if(transition.target===0){enterLevel(0,LEVELS[0].returnSpawn,'Back in Level 0. The wall still remembers the way through.');return;}
-  enterLevel(1,null,'Level 1. Concrete, pipes, and distant machinery.');
+  const target=LEVELS[transition.target],arrival=transition.returning?target.returnSpawn:null;
+  enterLevel(transition.target,arrival,transition.returning?`Back in Level ${target.number}. The wall still remembers the way through.`:`Level ${target.number}. ${target.tagline}.`);
 }
 
 function enterLevel(levelIndex,arrival=null,entryStatus=null){

@@ -1,6 +1,6 @@
 # Backrooms
 
-A first-person browser maze where people leave public notes for the next person. Level 0 ends at a normal-looking wall with no collision; passing through it opens the playable concrete maze of Level 1.
+A first-person browser maze where people leave public notes for the next person. Every level has at least one bidirectional door: Level 0–8 continue forward, while Level 9 loops back to Level 0.
 
 ## Run locally
 
@@ -15,7 +15,7 @@ Players do not need to sign in with GitHub to explore or read messages. A token 
 3. Sign in to GitHub if asked. Give the token a short name such as `Backrooms marker`, choose an expiration, select only the `public_repo` scope, and generate it. GitHub shows the token only once, so copy it immediately.
 4. Paste the token into **GITHUB TOKEN** in the game. Choose a marker name and color, then click **ENTER LEVEL 0**.
 5. Explore with **WASD** and look with the mouse. Press **F** or click **FLASHLIGHT: OFF** to toggle your handheld beam. Press **E** or click the marker to write. Face a wall, type up to 280 characters, and click **WRITE ON THE WALL**. Your chosen name is appended automatically.
-6. In Level 0, find the ordinary-looking wall that does not stop you. Walk through it to enter Level 1 without a popup. To return, walk back through the entrance wall behind your Level 1 starting position.
+6. Find the ordinary-looking transition wall in each level. Walking through it changes levels without a popup; the entrance wall behind your starting position always takes you back. Level 9's forward door loops to Level 0.
 
 Keep the token private. The game stores it only in this browser tab's session storage and sends it only to GitHub's API when posting. Use a dedicated token with the smallest scope, never paste it into a message, and revoke it from GitHub after testing if you no longer need it.
 
