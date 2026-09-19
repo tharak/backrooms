@@ -10,7 +10,7 @@ Serve this directory with any static web server, for example `python3 -m http.se
 
 Messages are stored as JSON comments in the separate public [`tharak/backrooms-messages`](https://github.com/tharak/backrooms-messages) repository. Before deploying:
 
-1. Create one open issue per level. The issue title is that level's deterministic seed, and its JSON comments are that level's messages. Put the issue numbers in `js/config.js` in level order.
+1. Create one open issue per level. The repository is prepared with ten Level 0–9 issues. The issue title is that level's deterministic seed, and its JSON comments are that level's messages. Keep the issue numbers in `js/config.js` in level order.
 2. Each player who wants to write creates a classic GitHub personal access token with only the `public_repo` scope.
 3. The player pastes that token into the welcome screen. It is kept only in their current browser session and is never committed or sent anywhere except GitHub's API.
 4. In repository **Settings → Pages**, choose **GitHub Actions** as the publishing source.
