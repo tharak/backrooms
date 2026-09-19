@@ -1,6 +1,6 @@
 # Backrooms
 
-A first-person browser maze where people leave public notes for the next person.
+A first-person browser maze where people leave public notes for the next person. Level 0 ends at a normal-looking wall with no collision: finding it leads to the Level 1 transition.
 
 ## Run locally
 
@@ -12,7 +12,7 @@ Messages are stored as JSON comments in the separate public [`tharak/backrooms-m
 
 1. Create an open Issue called **Player Messages** in the message repository and copy its number.
 2. Each player who wants to write creates a classic GitHub personal access token with only the `public_repo` scope.
-3. The player pastes that token into the marker panel. It is kept only in their current browser session and is never committed or sent anywhere except GitHub's API.
+3. The player pastes that token into the welcome screen. It is kept only in their current browser session and is never committed or sent anywhere except GitHub's API.
 4. In repository **Settings → Pages**, choose **GitHub Actions** as the publishing source.
 
 Players can read without signing in. To write, they choose a name/color and paste their own classic `public_repo` token; the game appends the name to every note and stores it as a public Issue comment. The token stays only in the current browser session. Repository owners can moderate or close the issue in GitHub.

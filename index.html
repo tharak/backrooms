@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#c8bd4f" />
     <title>BACKROOMS // LEVEL 0</title>
-    <link rel="stylesheet" href="styles.css?v=webgl3" />
+    <link rel="stylesheet" href="styles.css?v=level-exit" />
     <script type="importmap">
       { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js" } }
     </script>
@@ -34,7 +34,7 @@
       </section>
       <section id="start-panel" class="start panel" aria-labelledby="start-title">
         <p class="eyebrow">THE BACKROOMS</p>
-        <h1 id="start-title">There is no exit.<br />Only evidence.</h1>
+        <h1 id="start-title">The walls lie.<br />Find the weak one.</h1>
         <p>Choose the marker you will carry. These details last for this visit, so writing later takes only one key.</p>
         <div class="welcome-fields">
           <label class="field-label" for="marker-name">MARKER NAME</label>
@@ -48,8 +48,14 @@
         </div>
         <button id="enter" class="button" type="button">ENTER LEVEL 0</button>
       </section>
+      <section id="level-complete" class="level-complete panel hidden" aria-labelledby="level-complete-title">
+        <p class="eyebrow">LEVEL 0 COMPLETE</p>
+        <h1 id="level-complete-title">LEVEL 1<br /><span>HABITABLE ZONE</span></h1>
+        <p>You passed through a wall that should have been solid. The humming fades, but something else is waiting ahead.</p>
+        <button id="restart-level" class="button" type="button">RE-ENTER LEVEL 0</button>
+      </section>
     </main>
     <script src="js/config.js"></script>
-    <script type="module" src="js/game.js?v=webgl3"></script>
+    <script type="module" src="js/game.js?v=level-exit"></script>
   </body>
 </html>

@@ -11,7 +11,12 @@ const colorInput = document.querySelector('#marker-color');
 const tokenInput = document.querySelector('#github-token');
 const markerIdentity = document.querySelector('#marker-identity');
 const welcomeError = document.querySelector('#welcome-error');
+const levelCompletePanel = document.querySelector('#level-complete');
 const API = 'https://api.github.com';
+
+const CELL_SIZE = 2;
+const WALL_HEIGHT = 3.2;
+const EXIT_CELL = { x: 8, z: 1 };
 
 const map = [
   '111111111111111',
@@ -27,17 +32,20 @@ const map = [
   '111111111111111'
 ];
 
-const player = { x: 1.5, z: 1.5, yaw: 0.1, pitch: 0, speed: 2.65 };
+const player = { x: 1.5 * CELL_SIZE, z: 1.5 * CELL_SIZE, yaw: 0, pitch: 0, speed: 3.6 };
 const keys = new Set();
 const messageGroup = new THREE.Group();
 let started = false;
 let previous = performance.now();
 
 function setStatus(text) { status.textContent = text; }
-function isWall(x, z) { const row = map[Math.floor(z)]; return !row || row[Math.floor(x)] !== '0'; }
+function cellAt(x, z) { return { x: Math.floor(x / CELL_SIZE), z: Math.floor(z / CELL_SIZE) }; }
+function isExitCell(x, z) { const cell=cellAt(x,z); return cell.x===EXIT_CELL.x&&cell.z===EXIT_CELL.z; }
+function isWall(x, z) { const cell=cellAt(x,z),row=map[cell.z]; return !row || row[cell.x] !== '0'; }
+function blocksMovement(x, z) { return isWall(x,z) && !isExitCell(x,z); }
 function canStand(x, z) {
-  const radius = 0.18;
-  return !isWall(x-radius,z-radius) && !isWall(x+radius,z-radius) && !isWall(x-radius,z+radius) && !isWall(x+radius,z+radius);
+  const radius = 0.28;
+  return !blocksMovement(x-radius,z-radius) && !blocksMovement(x+radius,z-radius) && !blocksMovement(x-radius,z+radius) && !blocksMovement(x+radius,z+radius);
 }
 
 function canvasTexture(size, paint) {
@@ -74,40 +82,42 @@ renderer.toneMappingExposure = 1.08;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x242314);
-scene.fog = new THREE.FogExp2(0x686238, 0.048);
+scene.fog = new THREE.FogExp2(0x686238, 0.028);
 scene.add(messageGroup);
 
-const camera = new THREE.PerspectiveCamera(72, innerWidth/innerHeight, .04, 35);
+const camera = new THREE.PerspectiveCamera(72, innerWidth/innerHeight, .04, 60);
 camera.rotation.order='YXZ';
 scene.add(camera);
 
 const wallMaterial = new THREE.MeshStandardMaterial({ map: wallpaper, color: 0xf0e38a, roughness: .98, metalness: 0 });
-const wallGeometry = new THREE.BoxGeometry(1,3,1);
+const wallGeometry = new THREE.BoxGeometry(CELL_SIZE,WALL_HEIGHT,CELL_SIZE);
 for (let z=0;z<map.length;z++) for(let x=0;x<map[z].length;x++) if(map[z][x]==='1') {
   const wall=new THREE.Mesh(wallGeometry,wallMaterial);
-  wall.position.set(x+.5,1.5,z+.5);
+  wall.position.set((x+.5)*CELL_SIZE,WALL_HEIGHT/2,(z+.5)*CELL_SIZE);
+  if(x===EXIT_CELL.x&&z===EXIT_CELL.z)wall.userData.isExit=true;
   scene.add(wall);
 }
 
 const floorMaterial = new THREE.MeshStandardMaterial({ map: carpet, color: 0xb8ae77, roughness: 1 });
-const floor = new THREE.Mesh(new THREE.PlaneGeometry(map[0].length,map.length),floorMaterial);
-floor.rotation.x=-Math.PI/2; floor.position.set(map[0].length/2,0,map.length/2); scene.add(floor);
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(map[0].length*CELL_SIZE,map.length*CELL_SIZE),floorMaterial);
+floor.rotation.x=-Math.PI/2; floor.position.set(map[0].length*CELL_SIZE/2,0,map.length*CELL_SIZE/2); scene.add(floor);
 const ceilingMaterial = new THREE.MeshStandardMaterial({ color: 0xc9c49a, roughness: .93, side: THREE.DoubleSide });
-const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(map[0].length,map.length),ceilingMaterial);
-ceiling.rotation.x=Math.PI/2; ceiling.position.set(map[0].length/2,3,map.length/2); scene.add(ceiling);
+const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(map[0].length*CELL_SIZE,map.length*CELL_SIZE),ceilingMaterial);
+ceiling.rotation.x=Math.PI/2; ceiling.position.set(map[0].length*CELL_SIZE/2,WALL_HEIGHT,map.length*CELL_SIZE/2); scene.add(ceiling);
 
 scene.add(new THREE.HemisphereLight(0xeee8a8,0x514b28,1.12));
 scene.add(new THREE.AmbientLight(0x8d8652,.24));
 const lightMaterial = new THREE.MeshBasicMaterial({color:0xfff7b0});
 const fixtureGeometry = new THREE.BoxGeometry(1.3,.035,.18);
 for (const [x,z] of [[2.5,1.5],[6.5,1.5],[9.5,1.5],[13.5,1.5],[1.5,5.5],[5.5,5.5],[9.5,5.5],[13.5,9.5],[6.5,9.5]]) {
-  if(isWall(x,z)) continue;
-  const fixture=new THREE.Mesh(fixtureGeometry,lightMaterial); fixture.position.set(x,2.965,z); scene.add(fixture);
-  const light=new THREE.PointLight(0xffefa0,2.3,6,1.7); light.position.set(x,2.72,z); scene.add(light);
+  const worldX=x*CELL_SIZE,worldZ=z*CELL_SIZE;
+  if(isWall(worldX,worldZ)) continue;
+  const fixture=new THREE.Mesh(fixtureGeometry,lightMaterial); fixture.position.set(worldX,WALL_HEIGHT-.035,worldZ); scene.add(fixture);
+  const light=new THREE.PointLight(0xffefa0,2.3,9,1.7); light.position.set(worldX,WALL_HEIGHT-.28,worldZ); scene.add(light);
 }
 
 function updateCamera() {
-  camera.position.set(player.x,1.62,player.z);
+  camera.position.set(player.x,1.68,player.z);
   camera.rotation.y=-player.yaw-Math.PI/2;
   camera.rotation.x=player.pitch;
 }
@@ -129,11 +139,11 @@ function messageTexture(message) {
 function findNearestWall(position) {
   const directions=[[1,0,Math.PI],[0,1,-Math.PI/2],[-1,0,0],[0,-1,Math.PI/2]];
   let best=null;
-  for(const [dx,dz,normal] of directions) for(let distance=.05;distance<2.6;distance+=.05) {
+  for(const [dx,dz,normal] of directions) for(let distance=.05;distance<CELL_SIZE*2.6;distance+=.05) {
     const x=position.x+dx*distance,z=position.z+dz*distance;
     if(isWall(x,z)){
-      const cellX=Math.floor(x),cellZ=Math.floor(z);
-      const surface={x:dx>0?cellX:dx<0?cellX+1:position.x,z:dz>0?cellZ:dz<0?cellZ+1:position.z,normal,distance};
+      const cell=cellAt(x,z),minX=cell.x*CELL_SIZE,minZ=cell.z*CELL_SIZE;
+      const surface={x:dx>0?minX:dx<0?minX+CELL_SIZE:position.x,z:dz>0?minZ:dz<0?minZ+CELL_SIZE:position.z,normal,distance};
       if(!best||distance<best.distance)best=surface;
       break;
     }
@@ -143,11 +153,11 @@ function findNearestWall(position) {
 
 function alignToWall(position, angle) {
   const normal=Math.round(angle/(Math.PI/2))*(Math.PI/2),nx=Math.round(Math.cos(normal)),nz=Math.round(Math.sin(normal));
-  for(let probe=.04;probe<=.45;probe+=.04){
+  for(let probe=.04;probe<=CELL_SIZE*.55;probe+=.04){
     const insideX=position.x-nx*probe,insideZ=position.z-nz*probe;
     if(!isWall(insideX,insideZ))continue;
-    const cellX=Math.floor(insideX),cellZ=Math.floor(insideZ);
-    return {x:nx<0?cellX:nx>0?cellX+1:Math.min(cellX+.92,Math.max(cellX+.08,position.x)),z:nz<0?cellZ:nz>0?cellZ+1:Math.min(cellZ+.92,Math.max(cellZ+.08,position.z)),normal};
+    const cell=cellAt(insideX,insideZ),minX=cell.x*CELL_SIZE,minZ=cell.z*CELL_SIZE;
+    return {x:nx<0?minX:nx>0?minX+CELL_SIZE:Math.min(minX+CELL_SIZE-.08,Math.max(minX+.08,position.x)),z:nz<0?minZ:nz>0?minZ+CELL_SIZE:Math.min(minZ+CELL_SIZE-.08,Math.max(minZ+.08,position.z)),normal};
   }
   return findNearestWall(position);
 }
@@ -177,26 +187,30 @@ async function loadMessages() {
       if(!response.ok)throw new Error(response.status);
       const items=await response.json(); comments.push(...items); if(items.length<100)break;
     }
-    const messages=comments.map(comment=>{try{const record=JSON.parse(comment.body);return record.version===1&&record.position&&typeof record.text==='string'?{...record,id:comment.id}:null;}catch{return null;}}).filter(Boolean);
+    const messages=comments.map(comment=>{try{const record=JSON.parse(comment.body);if(record.version!==1||!record.position||typeof record.text!=='string')return null;const sourceScale=Number.isFinite(record.worldScale)?record.worldScale:1,scale=CELL_SIZE/sourceScale;return {...record,position:{x:record.position.x*scale,z:record.position.z*scale},id:comment.id};}catch{return null;}}).filter(Boolean);
     clearMessages(); messages.forEach(placeMessage);
     setStatus(messages.length?`${messages.length} traces are on these walls.`:'No one has marked these walls yet.');
   } catch { setStatus('Could not read the wall log. You can still explore.'); }
 }
 
 function markSurface() {
-  const dirX=Math.cos(player.yaw),dirZ=Math.sin(player.yaw),deltaX=dirX===0?Infinity:Math.abs(1/dirX),deltaZ=dirZ===0?Infinity:Math.abs(1/dirZ);
-  let cellX=Math.floor(player.x),cellZ=Math.floor(player.z),stepX=dirX<0?-1:1,stepZ=dirZ<0?-1:1;
-  let sideX=(dirX<0?player.x-cellX:cellX+1-player.x)*deltaX,sideZ=(dirZ<0?player.z-cellZ:cellZ+1-player.z)*deltaZ;
-  for(let step=0;step<64;step++){
-    let distance,side;
-    if(sideX<sideZ){distance=sideX;sideX+=deltaX;cellX+=stepX;side='x';}else{distance=sideZ;sideZ+=deltaZ;cellZ+=stepZ;side='z';}
-    if(distance>2.5)break;
-    if(isWall(cellX+.5,cellZ+.5)){
-      if(side==='x')return {x:stepX>0?cellX:cellX+1,z:+(player.z+dirZ*distance).toFixed(3),normal:stepX>0?Math.PI:0};
-      return {x:+(player.x+dirX*distance).toFixed(3),z:stepZ>0?cellZ:cellZ+1,normal:stepZ>0?-Math.PI/2:Math.PI/2};
+  const dirX=Math.cos(player.yaw),dirZ=Math.sin(player.yaw),maxDistance=CELL_SIZE*2.5;
+  let previous=cellAt(player.x,player.z);
+  for(let distance=.025;distance<=maxDistance;distance+=.025){
+    const x=player.x+dirX*distance,z=player.z+dirZ*distance,cell=cellAt(x,z);
+    if(isWall(x,z)){
+      const minX=cell.x*CELL_SIZE,minZ=cell.z*CELL_SIZE;
+      if(cell.x!==previous.x)return {x:dirX>0?minX:minX+CELL_SIZE,z:+z.toFixed(3),normal:dirX>0?Math.PI:0};
+      return {x:+x.toFixed(3),z:dirZ>0?minZ:minZ+CELL_SIZE,normal:dirZ>0?-Math.PI/2:Math.PI/2};
     }
+    previous=cell;
   }
   return null;
+}
+
+function reachExit(){
+  if(!started)return;
+  started=false;keys.clear();document.exitPointerLock();levelCompletePanel.classList.remove('hidden');setStatus('You found the wall that lied.');
 }
 
 function openPanel(element){element.classList.remove('hidden');document.exitPointerLock();}
@@ -222,6 +236,7 @@ document.querySelector('#enter').addEventListener('click',()=>{
   if(!token){welcomeError.textContent='Paste a GitHub token or create one before entering.';tokenInput.focus();return;}
   localStorage.setItem('backrooms-marker-name',name);localStorage.setItem('backrooms-marker-color',colorInput.value);sessionStorage.setItem('backrooms-player-token',token);welcomeError.textContent='';updateMarkerIdentity();document.querySelector('#start-panel').classList.add('hidden');started=true;canvas.requestPointerLock();loadMessages();
 });
+document.querySelector('#restart-level').addEventListener('click',()=>location.reload());
 
 document.querySelector('#send-message').addEventListener('click',async()=>{
   const text=textArea.value.trim(),name=nameInput.value.trim()||'Unknown wanderer',color=colorInput.value,token=tokenInput.value.trim(),send=document.querySelector('#send-message');
@@ -231,7 +246,7 @@ document.querySelector('#send-message').addEventListener('click',async()=>{
   if(!surface){setStatus('Move closer and face a wall before writing.');return;}
   localStorage.setItem('backrooms-marker-name',name);localStorage.setItem('backrooms-marker-color',color);sessionStorage.setItem('backrooms-player-token',token);send.disabled=true;
   try{
-    const record={version:1,position:{x:surface.x,z:surface.z},surfaceNormalAngle:surface.normal,text:`${text}\n— ${name}`,author:{name,color},createdAt:new Date().toISOString()};
+    const record={version:1,worldScale:CELL_SIZE,level:0,position:{x:surface.x,z:surface.z},surfaceNormalAngle:surface.normal,text:`${text}\n— ${name}`,author:{name,color},createdAt:new Date().toISOString()};
     const response=await fetch(`${API}/repos/${config.messageOwner}/${config.messageRepo}/issues/${config.messageIssueNumber}/comments`,{method:'POST',headers:{Accept:'application/vnd.github+json',Authorization:`Bearer ${token}`,'X-GitHub-Api-Version':config.githubApiVersion,'Content-Type':'application/json'},body:JSON.stringify({body:JSON.stringify(record)})});
     const result=await response.json();if(!response.ok)throw new Error(result.message||response.status);
     placeMessage({...record,id:result.id});textArea.value='';document.querySelector('#count').textContent='0';closePanels();setStatus('The wall remembers what you wrote.');
@@ -240,7 +255,7 @@ document.querySelector('#send-message').addEventListener('click',async()=>{
 
 function animate(now){
   const dt=Math.min(.05,(now-previous)/1000);previous=now;
-  if(started){const forward=(keys.has('w')?1:0)-(keys.has('s')?1:0),side=(keys.has('d')?1:0)-(keys.has('a')?1:0),length=Math.hypot(forward,side)||1,speed=player.speed*dt,nx=player.x+(Math.cos(player.yaw)*forward+Math.cos(player.yaw+Math.PI/2)*side)/length*speed,nz=player.z+(Math.sin(player.yaw)*forward+Math.sin(player.yaw+Math.PI/2)*side)/length*speed;if(canStand(nx,player.z))player.x=nx;if(canStand(player.x,nz))player.z=nz;}
+  if(started){const forward=(keys.has('w')?1:0)-(keys.has('s')?1:0),side=(keys.has('d')?1:0)-(keys.has('a')?1:0),length=Math.hypot(forward,side)||1,speed=player.speed*dt,nx=player.x+(Math.cos(player.yaw)*forward+Math.cos(player.yaw+Math.PI/2)*side)/length*speed,nz=player.z+(Math.sin(player.yaw)*forward+Math.sin(player.yaw+Math.PI/2)*side)/length*speed;if(canStand(nx,player.z))player.x=nx;if(canStand(player.x,nz))player.z=nz;if(isExitCell(player.x,player.z))reachExit();}
   updateCamera();renderer.render(scene,camera);requestAnimationFrame(animate);
 }
 requestAnimationFrame(animate);
