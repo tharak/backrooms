@@ -27,6 +27,8 @@
         <p id="message-help">This note will be public on GitHub. Your chosen name is added automatically.</p>
         <label class="field-label" for="marker-name">MARKER NAME</label>
         <div class="identity"><input id="marker-name" maxlength="24" placeholder="Unknown wanderer" aria-label="Marker name" /><input id="marker-color" type="color" value="#e7df61" aria-label="Marker color" /></div>
+        <label class="field-label" for="github-token">GITHUB TOKEN <span>(NOT SAVED)</span></label>
+        <input id="github-token" type="password" spellcheck="false" autocomplete="off" placeholder="Classic token with public_repo scope" aria-label="GitHub personal access token" />
         <textarea id="message-text" maxlength="280" placeholder="I heard something behind the wall..." aria-label="Your message"></textarea>
         <p class="counter"><span id="count">0</span>/280</p>
         <button id="send-message" class="button" type="button">WRITE ON THE WALL</button>
