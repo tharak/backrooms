@@ -9,6 +9,8 @@ const textArea = document.querySelector('#message-text');
 const nameInput = document.querySelector('#marker-name');
 const colorInput = document.querySelector('#marker-color');
 const tokenInput = document.querySelector('#github-token');
+const markerIdentity = document.querySelector('#marker-identity');
+const welcomeError = document.querySelector('#welcome-error');
 const API = 'https://api.github.com';
 
 const map = [
@@ -200,7 +202,6 @@ function markSurface() {
 function openPanel(element){element.classList.remove('hidden');document.exitPointerLock();}
 function closePanels(){document.querySelectorAll('.panel:not(.start)').forEach(element=>element.classList.add('hidden'));}
 document.querySelectorAll('[data-close]').forEach(button=>button.addEventListener('click',closePanels));
-document.querySelector('#enter').addEventListener('click',()=>{document.querySelector('#start-panel').classList.add('hidden');started=true;canvas.requestPointerLock();loadMessages();});
 document.addEventListener('keydown',event=>{const key=event.key.toLowerCase();if(['w','a','s','d'].includes(key))keys.add(key);if(key==='e'&&started)openPanel(messagePanel);});
 document.addEventListener('keyup',event=>keys.delete(event.key.toLowerCase()));
 document.addEventListener('mousemove',event=>{if(document.pointerLockElement!==canvas)return;player.yaw+=event.movementX*.0021;player.pitch=Math.max(-1.15,Math.min(1.15,player.pitch-event.movementY*.0018));});
@@ -211,6 +212,16 @@ textArea.addEventListener('input',()=>document.querySelector('#count').textConte
 nameInput.value=localStorage.getItem('backrooms-marker-name')||'';
 colorInput.value=localStorage.getItem('backrooms-marker-color')||'#e7df61';
 tokenInput.value=sessionStorage.getItem('backrooms-player-token')||'';
+function updateMarkerIdentity(){markerIdentity.textContent=nameInput.value.trim()||'Unknown wanderer';markerIdentity.style.color=colorInput.value;}
+updateMarkerIdentity();
+nameInput.addEventListener('input',updateMarkerIdentity);
+colorInput.addEventListener('input',updateMarkerIdentity);
+document.querySelector('#enter').addEventListener('click',()=>{
+  const name=nameInput.value.trim(),token=tokenInput.value.trim();
+  if(!name){welcomeError.textContent='Choose a marker name before entering.';nameInput.focus();return;}
+  if(!token){welcomeError.textContent='Paste a GitHub token or create one before entering.';tokenInput.focus();return;}
+  localStorage.setItem('backrooms-marker-name',name);localStorage.setItem('backrooms-marker-color',colorInput.value);sessionStorage.setItem('backrooms-player-token',token);welcomeError.textContent='';updateMarkerIdentity();document.querySelector('#start-panel').classList.add('hidden');started=true;canvas.requestPointerLock();loadMessages();
+});
 
 document.querySelector('#send-message').addEventListener('click',async()=>{
   const text=textArea.value.trim(),name=nameInput.value.trim()||'Unknown wanderer',color=colorInput.value,token=tokenInput.value.trim(),send=document.querySelector('#send-message');

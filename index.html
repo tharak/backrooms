@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#c8bd4f" />
     <title>BACKROOMS // LEVEL 0</title>
-    <link rel="stylesheet" href="styles.css?v=webgl1" />
+    <link rel="stylesheet" href="styles.css?v=webgl3" />
     <script type="importmap">
       { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js" } }
     </script>
@@ -27,14 +27,7 @@
         <button class="close" data-close="message-panel" aria-label="Close">×</button>
         <p class="eyebrow">MARK THIS PLACE</p>
         <h1 id="message-title">Leave a trace.</h1>
-        <p id="message-help">This note will be public on GitHub. Your chosen name is added automatically.</p>
-        <label class="field-label" for="marker-name">MARKER NAME</label>
-        <div class="identity"><input id="marker-name" maxlength="24" placeholder="Unknown wanderer" aria-label="Marker name" /><input id="marker-color" type="color" value="#e7df61" aria-label="Marker color" /></div>
-        <label class="field-label" for="github-token">GITHUB TOKEN <span>(NOT SAVED)</span></label>
-        <div class="token-row">
-          <input id="github-token" type="password" spellcheck="false" autocomplete="off" placeholder="Classic token with public_repo scope" aria-label="GitHub personal access token" />
-          <a class="token-link" href="https://github.com/settings/tokens/new?scopes=public_repo&amp;description=Backrooms%20marker" target="_blank" rel="noreferrer">CREATE TOKEN ↗</a>
-        </div>
+        <p id="message-help">Writing as <strong id="marker-identity"></strong>. Your name is added automatically.</p>
         <textarea id="message-text" maxlength="280" placeholder="I heard something behind the wall..." aria-label="Your message"></textarea>
         <p class="counter"><span id="count">0</span>/280</p>
         <button id="send-message" class="button" type="button">WRITE ON THE WALL</button>
@@ -42,11 +35,21 @@
       <section id="start-panel" class="start panel" aria-labelledby="start-title">
         <p class="eyebrow">THE BACKROOMS</p>
         <h1 id="start-title">There is no exit.<br />Only evidence.</h1>
-        <p>Explore the empty rooms. Read the marks other people left behind. Leave your own trace.</p>
+        <p>Choose the marker you will carry. These details last for this visit, so writing later takes only one key.</p>
+        <div class="welcome-fields">
+          <label class="field-label" for="marker-name">MARKER NAME</label>
+          <div class="identity"><input id="marker-name" maxlength="24" placeholder="Unknown wanderer" aria-label="Marker name" /><input id="marker-color" type="color" value="#e7df61" aria-label="Marker color" /></div>
+          <label class="field-label" for="github-token">GITHUB TOKEN <span>(THIS TAB ONLY)</span></label>
+          <div class="token-row">
+            <input id="github-token" type="password" spellcheck="false" autocomplete="off" placeholder="Classic token with public_repo scope" aria-label="GitHub personal access token" />
+            <a class="token-link" href="https://github.com/settings/tokens/new?scopes=public_repo&amp;description=Backrooms%20marker" target="_blank" rel="noreferrer">CREATE TOKEN ↗</a>
+          </div>
+          <p id="welcome-error" class="welcome-error" role="alert"></p>
+        </div>
         <button id="enter" class="button" type="button">ENTER LEVEL 0</button>
       </section>
     </main>
     <script src="js/config.js"></script>
-    <script type="module" src="js/game.js?v=webgl2"></script>
+    <script type="module" src="js/game.js?v=webgl3"></script>
   </body>
 </html>
