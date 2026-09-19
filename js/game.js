@@ -19,7 +19,7 @@ const API = 'https://api.github.com';
 const CELL_SIZE = 2;
 const LEVELS = [
   {
-    number:0,name:'THE LOBBY',tagline:'YOU ARE NOT ALONE',issueNumber:config.messageIssueNumbers?.[0]||config.messageIssueNumber||1,seed:'LEVEL 0 // THE LOBBY // yellow-static-0',wallHeight:3.2,spawn:{x:1.5,z:1.5,yaw:0},exit:{x:8,z:1},
+    number:0,name:'THE LOBBY',tagline:'YOU ARE NOT ALONE',issueNumber:config.messageIssueNumbers?.[0]||config.messageIssueNumber||1,seed:'LEVEL 0 // THE LOBBY // yellow-static-0',wallHeight:3.2,spawn:{x:1.5,z:1.5,yaw:0},exit:{x:8,z:1},returnSpawn:{x:7.5,z:1.5,yaw:Math.PI},
     background:0x242314,fog:0x686238,fogDensity:.028,
     lights:[[2.5,1.5],[6.5,1.5],[9.5,1.5],[13.5,1.5],[1.5,5.5],[5.5,5.5],[9.5,5.5],[13.5,9.5],[6.5,9.5]],
     map:[
@@ -37,7 +37,7 @@ const LEVELS = [
     ]
   },
   {
-    number:1,name:'HABITABLE ZONE',tagline:'DO NOT FOLLOW THE PIPES',issueNumber:config.messageIssueNumbers?.[1]||2,seed:'LEVEL 1 // HABITABLE ZONE // cold-concrete',wallHeight:3.6,spawn:{x:1.5,z:1.5,yaw:0},exit:null,
+    number:1,name:'HABITABLE ZONE',tagline:'DO NOT FOLLOW THE PIPES',issueNumber:config.messageIssueNumbers?.[1]||2,seed:'LEVEL 1 // HABITABLE ZONE // cold-concrete',wallHeight:3.6,spawn:{x:1.5,z:1.5,yaw:0},exit:null,returnWall:{x:0,z:1},
     background:0x1b2326,fog:0x3b474a,fogDensity:.019,
     lights:[[2.5,1.5],[6.5,1.5],[11.5,1.5],[17.5,1.5],[3.5,3.5],[9.5,3.5],[15.5,3.5],[1.5,5.5],[7.5,5.5],[13.5,5.5],[18.5,5.5],[3.5,7.5],[9.5,7.5],[15.5,7.5],[1.5,9.5],[7.5,9.5],[13.5,9.5],[18.5,11.5],[5.5,11.5]],
     map:[
@@ -68,9 +68,10 @@ let previous = performance.now();
 
 function setStatus(text) { status.textContent = text; }
 function cellAt(x, z) { return { x: Math.floor(x / CELL_SIZE), z: Math.floor(z / CELL_SIZE) }; }
-function isExitCell(x, z) { const level=LEVELS[currentLevelIndex];if(!level.exit)return false;const exit=transformedCell(level,level.exit),cell=cellAt(x,z);return cell.x===exit.x&&cell.z===exit.z; }
+function transitionAt(x,z){const level=LEVELS[currentLevelIndex],cell=cellAt(x,z);if(level.exit){const exit=transformedCell(level,level.exit);if(cell.x===exit.x&&cell.z===exit.z)return {target:1};}if(level.returnWall){const wall=transformedCell(level,level.returnWall);if(cell.x===wall.x&&cell.z===wall.z)return {target:0};}return null;}
+function isTransitionCell(x,z){return Boolean(transitionAt(x,z));}
 function isWall(x, z) { const cell=cellAt(x,z),row=currentMap()[cell.z]; return !row || row[cell.x] !== '0'; }
-function blocksMovement(x, z) { return isWall(x,z) && !isExitCell(x,z); }
+function blocksMovement(x, z) { return isWall(x,z) && !isTransitionCell(x,z); }
 function canStand(x, z) {
   const radius = 0.28;
   return !blocksMovement(x-radius,z-radius) && !blocksMovement(x+radius,z-radius) && !blocksMovement(x-radius,z+radius) && !blocksMovement(x+radius,z+radius);
@@ -165,8 +166,8 @@ function buildWorld(){
   scene.background=new THREE.Color(level.background);scene.fog=new THREE.FogExp2(level.fog,level.fogDensity);renderer.toneMappingExposure=isLevelOne?1.32:1.08;
   const wallMaterial=new THREE.MeshStandardMaterial({map:isLevelOne?concreteWall:wallpaper,color:isLevelOne?0x869093:0xf0e38a,roughness:isLevelOne?.88:.98,metalness:0});
   const wallGeometry=new THREE.BoxGeometry(CELL_SIZE,level.wallHeight,CELL_SIZE);
-  const exit=level.exit?transformedCell(level,level.exit):null;
-  for(let z=0;z<height;z++)for(let x=0;x<width;x++)if(map[z][x]==='1'){const wall=new THREE.Mesh(wallGeometry,wallMaterial);wall.position.set((x+.5)*CELL_SIZE,level.wallHeight/2,(z+.5)*CELL_SIZE);if(exit&&x===exit.x&&z===exit.z)wall.userData.isExit=true;worldGroup.add(wall);}
+  const transition=level.exit||level.returnWall,transitionCell=transition?transformedCell(level,transition):null;
+  for(let z=0;z<height;z++)for(let x=0;x<width;x++)if(map[z][x]==='1'){const wall=new THREE.Mesh(wallGeometry,wallMaterial);wall.position.set((x+.5)*CELL_SIZE,level.wallHeight/2,(z+.5)*CELL_SIZE);if(transitionCell&&x===transitionCell.x&&z===transitionCell.z)wall.userData.isTransition=true;worldGroup.add(wall);}
   const floorTexture=isLevelOne?concreteFloor:carpet;floorTexture.repeat.set(width,height);
   const floorMaterial=new THREE.MeshStandardMaterial({map:floorTexture,color:isLevelOne?0x788386:0xb8ae77,roughness:isLevelOne?.72:1,metalness:isLevelOne?.08:0});
   const floor=new THREE.Mesh(new THREE.PlaneGeometry(width*CELL_SIZE,height*CELL_SIZE),floorMaterial);floor.rotation.x=-Math.PI/2;floor.position.set(width*CELL_SIZE/2,0,height*CELL_SIZE/2);worldGroup.add(floor);
@@ -285,20 +286,21 @@ function markSurface() {
   return null;
 }
 
-function reachExit(){
+function reachTransition(transition){
   if(!started)return;
+  if(transition.target===0){enterLevel(0,LEVELS[0].returnSpawn,'Back in Level 0. The wall still remembers the way through.');return;}
   started=false;keys.clear();document.exitPointerLock();levelCompletePanel.classList.remove('hidden');setStatus('You found the wall that lied.');
 }
 
-function enterLevel(levelIndex){
+function enterLevel(levelIndex,arrival=null,entryStatus=null){
   currentLevelIndex=levelIndex;
   const level=LEVELS[levelIndex];
-  buildWorld();clearMessages();
-  const spawn=transformedPoint(level,level.spawn.x,level.spawn.z);player.x=spawn.x;player.z=spawn.z;player.yaw=transformedYaw(level,level.spawn.yaw);player.pitch=0;
+  keys.clear();buildWorld();clearMessages();
+  const arrivalPoint=arrival||level.spawn,spawn=transformedPoint(level,arrivalPoint.x,arrivalPoint.z);player.x=spawn.x;player.z=spawn.z;player.yaw=transformedYaw(level,arrivalPoint.yaw);player.pitch=0;
   levelLabel.innerHTML=`LEVEL ${level.number} <span>///</span> ${level.tagline}`;
   document.title=`BACKROOMS // LEVEL ${level.number}`;document.body.dataset.level=String(level.number);
   document.querySelectorAll('.panel').forEach(panel=>panel.classList.add('hidden'));
-  setStatus(levelIndex===0?'Find the wall that does not hold.':'Concrete, pipes, and distant machinery. Leave a trace.');
+  setStatus(entryStatus||(levelIndex===0?'Find the wall that does not hold.':'Concrete, pipes, and distant machinery. Leave a trace.'));
   started=true;canvas.requestPointerLock();loadMessages(levelIndex);
 }
 
@@ -345,7 +347,7 @@ document.querySelector('#send-message').addEventListener('click',async()=>{
 
 function animate(now){
   const dt=Math.min(.05,(now-previous)/1000);previous=now;
-  if(started){const forward=(keys.has('w')?1:0)-(keys.has('s')?1:0),side=(keys.has('d')?1:0)-(keys.has('a')?1:0),length=Math.hypot(forward,side)||1,speed=player.speed*dt,nx=player.x+(Math.cos(player.yaw)*forward+Math.cos(player.yaw+Math.PI/2)*side)/length*speed,nz=player.z+(Math.sin(player.yaw)*forward+Math.sin(player.yaw+Math.PI/2)*side)/length*speed;if(canStand(nx,player.z))player.x=nx;if(canStand(player.x,nz))player.z=nz;if(isExitCell(player.x,player.z))reachExit();}
+  if(started){const forward=(keys.has('w')?1:0)-(keys.has('s')?1:0),side=(keys.has('d')?1:0)-(keys.has('a')?1:0),length=Math.hypot(forward,side)||1,speed=player.speed*dt,nx=player.x+(Math.cos(player.yaw)*forward+Math.cos(player.yaw+Math.PI/2)*side)/length*speed,nz=player.z+(Math.sin(player.yaw)*forward+Math.sin(player.yaw+Math.PI/2)*side)/length*speed;if(canStand(nx,player.z))player.x=nx;if(canStand(player.x,nz))player.z=nz;const transition=transitionAt(player.x,player.z);if(transition)reachTransition(transition);}
   updateCamera();renderer.render(scene,camera);requestAnimationFrame(animate);
 }
 requestAnimationFrame(animate);
