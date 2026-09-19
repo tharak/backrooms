@@ -4,6 +4,6 @@ window.BACKROOMS_CONFIG = {
   messageOwner: "tharak",
   messageRepo: "backrooms-messages",
   messageIssueNumber: 1,
-  messageToken: "",
+  messageToken: "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",
   githubApiVersion: "2026-03-10"
 };
