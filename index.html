@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#c8bd4f" />
+    <title>BACKROOMS // LEVEL 0</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main id="game-shell" aria-label="Backrooms exploration game">
+      <canvas id="game" aria-label="First-person Backrooms view"></canvas>
+      <div id="grain" aria-hidden="true"></div>
+      <header class="hud">
+        <p class="eyebrow">LEVEL 0 <span>///</span> YOU ARE NOT ALONE</p>
+        <p id="status" role="status">Find a place worth marking.</p>
+      </header>
+      <aside class="controls" aria-label="Game controls">WASD <span>MOVE</span> · MOUSE <span>LOOK</span> · E <span>MARK</span></aside>
+      <button id="marker" class="marker dry" type="button" aria-label="GitHub marker, no ink">
+        <span class="marker-cap"></span><span class="marker-label">GITHUB<br /><b>MARKER</b></span><span class="marker-tip"></span>
+      </button>
+      <div id="crosshair" aria-hidden="true">+</div>
+      <section id="message-panel" class="panel hidden" aria-labelledby="message-title">
+        <button class="close" data-close="message-panel" aria-label="Close">×</button>
+        <p class="eyebrow">MARK THIS PLACE</p>
+        <h1 id="message-title">Leave a trace.</h1>
+        <p id="message-help">This note will be public on GitHub.</p>
+        <textarea id="message-text" maxlength="280" placeholder="I heard something behind the wall..." aria-label="Your message"></textarea>
+        <p class="counter"><span id="count">0</span>/280</p>
+        <button id="send-message" class="button" type="button">WRITE ON THE WALL</button>
+      </section>
+      <section id="login-panel" class="panel hidden" aria-labelledby="login-title">
+        <button class="close" data-close="login-panel" aria-label="Close">×</button>
+        <p class="eyebrow">GITHUB MARKER // NO INK</p>
+        <h1 id="login-title">The marker needs ink.</h1>
+        <p>Sign in with GitHub to fill it. Your note will be posted publicly under your GitHub name.</p>
+        <div id="device-code" class="device-code hidden"></div>
+        <a id="verify-link" class="button hidden" href="https://github.com/login/device" target="_blank" rel="noreferrer">OPEN GITHUB</a>
+        <button id="start-login" class="button" type="button">FILL WITH GITHUB INK</button>
+        <p id="login-status" class="small"></p>
+      </section>
+      <section id="start-panel" class="start panel" aria-labelledby="start-title">
+        <p class="eyebrow">THE BACKROOMS</p>
+        <h1 id="start-title">There is no exit.<br />Only evidence.</h1>
+        <p>Explore the empty rooms. Read the marks other people left behind. Keep your own marker dry, or give it ink.</p>
+        <button id="enter" class="button" type="button">ENTER LEVEL 0</button>
+      </section>
+    </main>
+    <script src="js/config.js"></script>
+    <script type="module" src="js/game.js"></script>
+  </body>
+</html>
