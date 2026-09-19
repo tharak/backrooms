@@ -2,7 +2,7 @@
 * { box-sizing:border-box; }
 body { margin:0; overflow:hidden; }
 #game-shell, #game { width:100vw; height:100vh; display:block; }
-#game { image-rendering:pixelated; cursor:crosshair; }
+#game { cursor:crosshair; touch-action:none; }
 #grain { pointer-events:none; position:fixed; inset:0; opacity:.16; mix-blend-mode:overlay; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E"); }
 .hud { position:fixed; left:24px; top:20px; text-shadow:0 2px 3px #242000; pointer-events:none; }
 .eyebrow { letter-spacing:.16em; font-size:11px; margin:0 0 9px; color:#e6d958; }
@@ -11,7 +11,7 @@ body { margin:0; overflow:hidden; }
 .controls { position:fixed; bottom:20px; left:24px; font-size:11px; color:#f0e774; opacity:.8; pointer-events:none; }
 .controls span { color:#e0dec2; margin-right:6px; }
 #crosshair { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); color:#e4db64; font:20px serif; text-shadow:0 0 4px #000; pointer-events:none; }
-.marker { position:fixed; bottom:29px; right:28px; width:178px; height:38px; padding:0; transform:rotate(-12deg); background:#181817; border:2px solid #e7df61; border-radius:5px 5px 5px 16px; cursor:pointer; color:#f9f5c8; box-shadow:0 4px 18px #0008; display:flex; align-items:center; transition:.2s; }
+.marker { position:fixed; z-index:1; bottom:29px; right:28px; width:178px; height:38px; padding:0; transform:rotate(-12deg); background:#181817; border:2px solid #e7df61; border-radius:5px 5px 5px 16px; cursor:pointer; color:#f9f5c8; box-shadow:0 4px 18px #0008; display:flex; align-items:center; transition:.2s; }
 .marker:hover { transform:rotate(-12deg) translateY(-3px); }
 .marker-cap { width:27px; height:34px; background:#e7df61; border-radius:2px; margin-left:1px; }
 .marker-label { flex:1; text-align:left; padding-left:10px; font:8px/10px ui-monospace; letter-spacing:.13em; }.marker-label b { font-size:11px; }
