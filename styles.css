@@ -10,6 +10,7 @@ body { margin:0; overflow:hidden; }
 #status { max-width:370px; margin:0; font-size:13px; color:#e6e3bc; }
 .controls { position:fixed; bottom:20px; left:24px; font-size:11px; color:#f0e774; opacity:.8; pointer-events:none; }
 .controls span { color:#e0dec2; margin-right:6px; }
+.wall-note { position:fixed; left:50%; bottom:70px; transform:translateX(-50%); width:min(480px,calc(100vw - 38px)); padding:13px 18px; background:#211d10e8; border-left:3px solid #d7c95c; box-shadow:0 5px 24px #0008; pointer-events:none; text-align:center; }.wall-note .eyebrow { margin-bottom:5px; }.wall-note #wall-note-text { margin:0; color:#f4edb5; white-space:pre-wrap; font:13px/1.45 ui-monospace; }
 #crosshair { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); color:#e4db64; font:20px serif; text-shadow:0 0 4px #000; pointer-events:none; }
 .marker { position:fixed; bottom:29px; right:28px; width:178px; height:38px; padding:0; transform:rotate(-12deg); background:#181817; border:2px solid #e7df61; border-radius:5px 5px 5px 16px; cursor:pointer; color:#f9f5c8; box-shadow:0 4px 18px #0008; display:flex; align-items:center; transition:.2s; }
 .marker:hover { transform:rotate(-12deg) translateY(-3px); }
