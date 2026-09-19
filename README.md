@@ -8,12 +8,11 @@ Serve this directory with any static web server, for example `python3 -m http.se
 
 ## GitHub message wall setup
 
-Messages are stored as JSON comments on one Issue in this same repository. Before deploying:
+Messages are stored as JSON comments in the separate public [`tharak/backrooms-messages`](https://github.com/tharak/backrooms-messages) repository. Before deploying:
 
-1. Create an open Issue called **Player Messages** and copy its number.
-2. Create a fine-grained GitHub token with **Issues: Read and write** access limited to this repository.
-3. Deploy the small message relay in `worker/`: set `GITHUB_TOKEN`, `GITHUB_OWNER` (`tharak`), `GITHUB_REPO` (`backrooms`), and `GITHUB_ISSUE_NUMBER` (`1`) with `npx wrangler secret put …`, then run `npx wrangler deploy` from `worker/`.
-4. Put the deployed Worker URL in `messageBrokerUrl` in `js/config.js`.
-5. In repository **Settings → Pages**, choose **GitHub Actions** as the publishing source.
+1. Create an open Issue called **Player Messages** in the message repository and copy its number.
+2. Create a fine-grained GitHub token limited exclusively to `tharak/backrooms-messages`, with **Issues: Read and write** permission.
+3. Put the token in `messageToken` in `js/config.js`, then deploy to Pages.
+4. In repository **Settings → Pages**, choose **GitHub Actions** as the publishing source.
 
-Players can read and write without signing in. They choose a name and marker color, which are remembered only in their browser; the relay appends the name to every note and stores it as a public Issue comment. The relay holds the repository token as a Cloudflare secret, and does not store player data or sessions. Repository owners can moderate or close the issue in GitHub.
+Players can read and write without signing in. They choose a name and marker color, which are remembered only in their browser; the game appends the name to every note and stores it as a public Issue comment. The token is visible to site visitors, so it must be limited solely to the message repository: a leak can affect its messages but not the game repository. Repository owners can moderate or close the issue in GitHub.

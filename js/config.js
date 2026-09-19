@@ -1,9 +1,9 @@
-// Deploy the included Cloudflare Worker and put its public URL here. It posts
-// anonymous game records to the repository's public Player Messages issue.
+// This fine-grained token is intentionally public when deployed. Restrict it
+// to the message repository only, with Issues: Read and write access.
 window.BACKROOMS_CONFIG = {
-  owner: "tharak",
-  repo: "backrooms",
+  messageOwner: "tharak",
+  messageRepo: "backrooms-messages",
   messageIssueNumber: 1,
-  messageBrokerUrl: "",
+  messageToken: "",
   githubApiVersion: "2026-03-10"
 };
