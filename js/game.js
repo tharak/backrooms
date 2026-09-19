@@ -304,7 +304,7 @@ async function loadMessages(levelIndex=currentLevelIndex) {
       const items=await response.json(); comments.push(...items); if(items.length<100)break;
     }
     if(levelIndex!==currentLevelIndex)return;
-    const messages=comments.map(comment=>{try{const record=JSON.parse(comment.body);if(record.version!==1||!record.position||typeof record.text!=='string'||record.seed&&record.seed!==level.seed)return null;const sourceScale=Number.isFinite(record.worldScale)?record.worldScale:1,scale=CELL_SIZE/sourceScale;return {...record,position:{x:record.position.x*scale,z:record.position.z*scale},id:comment.id};}catch{return null;}}).filter(Boolean);
+    const messages=comments.map(comment=>{try{const record=JSON.parse(comment.body);if(typeof record.t!=='string'||!Array.isArray(record.p)||record.p.length<2||!record.s||record.s!==level.seed)return null;return {text:record.t,position:{x:Number(record.p[0]),z:Number(record.p[1])},surfaceNormalAngle:Number(record.n),author:{color:record.c},id:comment.id};}catch{return null;}}).filter(message=>Number.isFinite(message.position.x)&&Number.isFinite(message.position.z));
     clearMessages(); messages.forEach(placeMessage);
     setStatus(messages.length?`${messages.length} traces are on these walls.`:'No one has marked these walls yet.');
   } catch { if(levelIndex===currentLevelIndex)setStatus('Could not read the wall log. You can still explore.'); }
@@ -376,10 +376,10 @@ document.querySelector('#send-message').addEventListener('click',async()=>{
   if(!surface){setStatus('Move closer and face a wall before writing.');return;}
   localStorage.setItem('backrooms-marker-name',name);localStorage.setItem('backrooms-marker-color',color);sessionStorage.setItem('backrooms-player-token',token);send.disabled=true;
   try{
-    const level=LEVELS[currentLevelIndex],record={version:1,worldScale:CELL_SIZE,level:currentLevelIndex,seed:level.seed,position:{x:surface.x,z:surface.z},surfaceNormalAngle:surface.normal,text:`${text}\n— ${name}`,author:{name,color},createdAt:new Date().toISOString()};
+    const level=LEVELS[currentLevelIndex],record={p:[Number(surface.x.toFixed(3)),Number(surface.z.toFixed(3))],n:Number(surface.normal.toFixed(4)),s:level.seed,t:`${text}\n— ${name}`,c:color};
     const response=await fetch(`${API}/repos/${config.messageOwner}/${config.messageRepo}/issues/${level.issueNumber}/comments`,{method:'POST',headers:{Accept:'application/vnd.github+json',Authorization:`Bearer ${token}`,'X-GitHub-Api-Version':config.githubApiVersion,'Content-Type':'application/json'},body:JSON.stringify({body:JSON.stringify(record)})});
     const result=await response.json();if(!response.ok)throw new Error(result.message||response.status);
-    placeMessage({...record,id:result.id});textArea.value='';document.querySelector('#count').textContent='0';closePanels();setStatus('The wall remembers what you wrote.');
+    placeMessage({text:record.t,position:{x:record.p[0],z:record.p[1]},surfaceNormalAngle:record.n,author:{color:record.c},id:result.id});textArea.value='';document.querySelector('#count').textContent='0';closePanels();setStatus('The wall remembers what you wrote.');
   }catch(error){setStatus(`The marker failed: ${error.message}.`);}finally{send.disabled=false;}
 });
 
