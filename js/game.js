@@ -129,20 +129,38 @@ function findNearestWall(position) {
   let best=null;
   for(const [dx,dz,normal] of directions) for(let distance=.05;distance<2.6;distance+=.05) {
     const x=position.x+dx*distance,z=position.z+dz*distance;
-    if(isWall(x,z)){if(!best||distance<best.distance)best={x:x-dx*.04,z:z-dz*.04,normal,distance};break;}
+    if(isWall(x,z)){
+      const cellX=Math.floor(x),cellZ=Math.floor(z);
+      const surface={x:dx>0?cellX:dx<0?cellX+1:position.x,z:dz>0?cellZ:dz<0?cellZ+1:position.z,normal,distance};
+      if(!best||distance<best.distance)best=surface;
+      break;
+    }
   }
   return best || {x:position.x,z:position.z,normal:0};
+}
+
+function alignToWall(position, angle) {
+  const normal=Math.round(angle/(Math.PI/2))*(Math.PI/2),nx=Math.round(Math.cos(normal)),nz=Math.round(Math.sin(normal));
+  for(let probe=.04;probe<=.45;probe+=.04){
+    const insideX=position.x-nx*probe,insideZ=position.z-nz*probe;
+    if(!isWall(insideX,insideZ))continue;
+    const cellX=Math.floor(insideX),cellZ=Math.floor(insideZ);
+    return {x:nx<0?cellX:nx>0?cellX+1:Math.min(cellX+.92,Math.max(cellX+.08,position.x)),z:nz<0?cellZ:nz>0?cellZ+1:Math.min(cellZ+.92,Math.max(cellZ+.08,position.z)),normal};
+  }
+  return findNearestWall(position);
 }
 
 function placeMessage(message) {
   let x=message.position.x,z=message.position.z,normal;
   if(Number.isFinite(message.surfaceNormalAngle)) normal=message.surfaceNormalAngle;
   else if(Number.isFinite(message.surfaceAngle)) normal=message.surfaceAngle+Math.PI;
-  else { const surface=findNearestWall(message.position); x=surface.x;z=surface.z;normal=surface.normal; }
-  const material=new THREE.MeshBasicMaterial({map:messageTexture(message),transparent:true,side:THREE.FrontSide,depthWrite:false,alphaTest:.08});
-  const note=new THREE.Mesh(new THREE.PlaneGeometry(1.75,.88),material);
-  note.position.set(x+Math.cos(normal)*.012,1.52,z+Math.sin(normal)*.012);
+  else normal=findNearestWall(message.position).normal;
+  const surface=alignToWall({x,z},normal);x=surface.x;z=surface.z;normal=surface.normal;
+  const material=new THREE.MeshBasicMaterial({map:messageTexture(message),transparent:true,side:THREE.FrontSide,depthWrite:false,alphaTest:.08,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});
+  const note=new THREE.Mesh(new THREE.PlaneGeometry(1.35,.68),material);
+  note.position.set(x+Math.cos(normal)*.022,1.5,z+Math.sin(normal)*.022);
   note.rotation.y=Math.PI/2-normal;
+  note.renderOrder=2;
   note.userData.messageId=message.id;
   messageGroup.add(note);
 }
@@ -164,9 +182,17 @@ async function loadMessages() {
 }
 
 function markSurface() {
-  for(let distance=.35;distance<2.5;distance+=.025){
-    const x=player.x+Math.cos(player.yaw)*distance,z=player.z+Math.sin(player.yaw)*distance;
-    if(isWall(x,z)) return {x:+(x-Math.cos(player.yaw)*.035).toFixed(3),z:+(z-Math.sin(player.yaw)*.035).toFixed(3),normal:+(player.yaw+Math.PI).toFixed(4)};
+  const dirX=Math.cos(player.yaw),dirZ=Math.sin(player.yaw),deltaX=dirX===0?Infinity:Math.abs(1/dirX),deltaZ=dirZ===0?Infinity:Math.abs(1/dirZ);
+  let cellX=Math.floor(player.x),cellZ=Math.floor(player.z),stepX=dirX<0?-1:1,stepZ=dirZ<0?-1:1;
+  let sideX=(dirX<0?player.x-cellX:cellX+1-player.x)*deltaX,sideZ=(dirZ<0?player.z-cellZ:cellZ+1-player.z)*deltaZ;
+  for(let step=0;step<64;step++){
+    let distance,side;
+    if(sideX<sideZ){distance=sideX;sideX+=deltaX;cellX+=stepX;side='x';}else{distance=sideZ;sideZ+=deltaZ;cellZ+=stepZ;side='z';}
+    if(distance>2.5)break;
+    if(isWall(cellX+.5,cellZ+.5)){
+      if(side==='x')return {x:stepX>0?cellX:cellX+1,z:+(player.z+dirZ*distance).toFixed(3),normal:stepX>0?Math.PI:0};
+      return {x:+(player.x+dirX*distance).toFixed(3),z:stepZ>0?cellZ:cellZ+1,normal:stepZ>0?-Math.PI/2:Math.PI/2};
+    }
   }
   return null;
 }
