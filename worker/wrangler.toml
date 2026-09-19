@@ -1,0 +1,7 @@
+name = "backrooms-github-ink"
+main = "src/index.js"
+compatibility_date = "2026-09-19"
+
+# Before deployment run:
+#   npx wrangler secret put GITHUB_CLIENT_ID
+# Then set js/config.js oauthBrokerUrl to the deployed Worker URL.
