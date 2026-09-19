@@ -13,6 +13,7 @@ const markerIdentity = document.querySelector('#marker-identity');
 const welcomeError = document.querySelector('#welcome-error');
 const levelCompletePanel = document.querySelector('#level-complete');
 const levelLabel = document.querySelector('#level-label');
+const flashlightToggle = document.querySelector('#flashlight-toggle');
 const API = 'https://api.github.com';
 
 const CELL_SIZE = 2;
@@ -125,6 +126,17 @@ scene.add(worldGroup,messageGroup);
 const camera = new THREE.PerspectiveCamera(72, innerWidth/innerHeight, .04, 60);
 camera.rotation.order='YXZ';
 scene.add(camera);
+
+const flashlightGroup=new THREE.Group();flashlightGroup.position.set(.34,-.27,-.5);flashlightGroup.rotation.z=-.08;camera.add(flashlightGroup);
+const flashlightBody=new THREE.Mesh(new THREE.CylinderGeometry(.055,.075,.31,16),new THREE.MeshStandardMaterial({color:0x252a2c,roughness:.38,metalness:.7}));flashlightBody.rotation.x=Math.PI/2;flashlightGroup.add(flashlightBody);
+const flashlightGrip=new THREE.Mesh(new THREE.CylinderGeometry(.063,.063,.16,16),new THREE.MeshStandardMaterial({color:0x111516,roughness:.8,metalness:.25}));flashlightGrip.rotation.x=Math.PI/2;flashlightGrip.position.z=.2;flashlightGroup.add(flashlightGrip);
+const flashlightRing=new THREE.Mesh(new THREE.TorusGeometry(.068,.012,8,20),new THREE.MeshStandardMaterial({color:0xe0a34c,roughness:.3,metalness:.75}));flashlightRing.rotation.x=Math.PI/2;flashlightRing.position.z=-.16;flashlightGroup.add(flashlightRing);
+const flashlightLens=new THREE.Mesh(new THREE.CircleGeometry(.055,20),new THREE.MeshBasicMaterial({color:0xffe8a3}));flashlightLens.position.z=-.174;flashlightLens.rotation.y=Math.PI;flashlightGroup.add(flashlightLens);
+const flashlightTarget=new THREE.Object3D();flashlightTarget.position.set(0,0,-10);camera.add(flashlightTarget);
+const flashlightBeam=new THREE.SpotLight(0xffd98a,0,18,Math.PI*.2,.58,1.4);flashlightBeam.position.set(0,0,0);flashlightBeam.target=flashlightTarget;camera.add(flashlightBeam);
+let flashlightOn=false;
+function setFlashlight(on){flashlightOn=on;flashlightBeam.intensity=on?8.5:0;flashlightLens.material.color.set(on?0xfff0b0:0x695f43);flashlightToggle.textContent=on?'FLASHLIGHT: ON':'FLASHLIGHT: OFF';flashlightToggle.setAttribute('aria-pressed',String(on));flashlightToggle.classList.toggle('on',on);}
+setFlashlight(false);
 
 function hashSeed(text){let hash=2166136261;for(const character of text){hash^=character.charCodeAt(0);hash=Math.imul(hash,16777619);}return hash>>>0;}
 function seededRandom(seed){let value=seed>>>0;return()=>{value+=0x6d2b79f5;let result=value;result=Math.imul(result^result>>>15,result|1);result^=result+Math.imul(result^result>>>7,result|61);return((result^result>>>14)>>>0)/4294967296;};}
@@ -293,11 +305,12 @@ function enterLevel(levelIndex){
 function openPanel(element){element.classList.remove('hidden');document.exitPointerLock();}
 function closePanels(){document.querySelectorAll('.panel:not(.start)').forEach(element=>element.classList.add('hidden'));}
 document.querySelectorAll('[data-close]').forEach(button=>button.addEventListener('click',closePanels));
-document.addEventListener('keydown',event=>{const key=event.key.toLowerCase();if(['w','a','s','d'].includes(key))keys.add(key);if(key==='e'&&started)openPanel(messagePanel);});
+document.addEventListener('keydown',event=>{const key=event.key.toLowerCase();if(['w','a','s','d'].includes(key))keys.add(key);if(key==='f'&&started&&!event.target.matches('input,textarea')){setFlashlight(!flashlightOn);event.preventDefault();}if(key==='e'&&started)openPanel(messagePanel);});
 document.addEventListener('keyup',event=>keys.delete(event.key.toLowerCase()));
 document.addEventListener('mousemove',event=>{if(document.pointerLockElement!==canvas)return;player.yaw+=event.movementX*.0021;player.pitch=Math.max(-1.15,Math.min(1.15,player.pitch-event.movementY*.0018));});
 canvas.addEventListener('click',()=>{if(started&&!document.querySelector('.panel:not(.hidden)'))canvas.requestPointerLock();});
 marker.addEventListener('click',()=>openPanel(messagePanel));
+flashlightToggle.addEventListener('click',()=>{if(started)setFlashlight(!flashlightOn);});
 textArea.addEventListener('input',()=>document.querySelector('#count').textContent=textArea.value.length);
 
 nameInput.value=localStorage.getItem('backrooms-marker-name')||'';

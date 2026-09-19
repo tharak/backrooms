@@ -18,7 +18,8 @@
         <p id="level-label" class="eyebrow">LEVEL 0 <span>///</span> YOU ARE NOT ALONE</p>
         <p id="status" role="status">Find a place worth marking.</p>
       </header>
-      <aside class="controls" aria-label="Game controls">WASD <span>MOVE</span> · MOUSE <span>LOOK</span> · E <span>MARK</span></aside>
+      <aside class="controls" aria-label="Game controls">WASD <span>MOVE</span> · MOUSE <span>LOOK</span> · F <span>LIGHT</span> · E <span>MARK</span></aside>
+      <button id="flashlight-toggle" class="flashlight-toggle" type="button" aria-pressed="false">FLASHLIGHT: OFF</button>
       <button id="marker" class="marker" type="button" aria-label="GitHub marker">
         <span class="marker-cap"></span><span class="marker-label">GITHUB<br /><b>MARKER</b></span><span class="marker-tip"></span>
       </button>
@@ -35,7 +36,7 @@
       <section id="start-panel" class="start panel" aria-labelledby="start-title">
         <p class="eyebrow">THE BACKROOMS</p>
         <h1 id="start-title">The walls lie.<br />Find the weak one.</h1>
-        <p>Choose the marker you will carry. These details last for this visit, so writing later takes only one key.</p>
+        <p>Choose the marker you will carry. Your flashlight is ready; press <strong>F</strong> whenever the corridors go dark.</p>
         <div class="welcome-fields">
           <label class="field-label" for="marker-name">MARKER NAME</label>
           <div class="identity"><input id="marker-name" maxlength="24" placeholder="Unknown wanderer" aria-label="Marker name" /><input id="marker-color" type="color" value="#e7df61" aria-label="Marker color" /></div>
